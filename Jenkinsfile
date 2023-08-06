@@ -48,6 +48,7 @@ node {
 
         if (qg != 'OK') {
             echo "Quality gate failed"
+            echo qg
         } else {
           echo "Quality gate passed"
         }
