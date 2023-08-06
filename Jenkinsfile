@@ -36,7 +36,7 @@ node {
                     -Dsonar.report.export.path=${scannerHome}/.scannerwork/sonar-report.json \
                     -Ddetekt.sonar.kotlin.config.path=default-detekt-config.yml \
                     -Dsonar.sources=src/main/java,src/main/resources \
-                    -Dsonar.exclusions='**/util/**,**/support/**,**/dto/**,**/entity/**' \
+                    -Dsonar.inclusions='**/service/**' \
                     -Dsonar.java.sourcesion=1.8 \
                     -Dsonar.sourceEncoding=UTF-8 \
                     -Dsonar.java.binaries=build/classes \
