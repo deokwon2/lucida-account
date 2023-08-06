@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InitializeServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.service</a> &gt; <span class="el_source">InitializeServiceImpl.java</span></div><h1>InitializeServiceImpl.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.service;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nkia.lucida.account.constants.AccountConstant;
+import com.nkia.lucida.account.entity.Group;
+import com.nkia.lucida.account.entity.Organization;
+import com.nkia.lucida.account.entity.Permission;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.account.entity.User;
+import com.nkia.lucida.account.repository.GroupRepository;
+import com.nkia.lucida.account.repository.OrganizationRepository;
+import com.nkia.lucida.account.repository.PermissionRepository;
+import com.nkia.lucida.account.repository.RoleRepository;
+import com.nkia.lucida.account.repository.UserRepository;
+import com.nkia.lucida.common.auth.SecurityContext;
+import com.nkia.lucida.common.mongodb.TenantContextHolder;
+import com.nkia.lucida.common.mongodb.TenantMongoDBConstants;
+import com.nkia.lucida.common.mongodb.TenantMongoDBUtils;
+import lombok.extern.slf4j.Slf4j;
+
+<span class="nc" id="L43">@Slf4j</span>
+@Service
+public class InitializeServiceImpl implements InitializeService {
+
+  private final UserRepository userRepository;
+  private final OrganizationRepository organizationRepository;
+  private final RoleRepository roleRepository;
+  private final PermissionRepository permissionRepository;
+  private final GroupRepository groupRepository;
+  private final ApplicationContext applicationContext;
+
+  public InitializeServiceImpl(
+      @Qualifier(TenantMongoDBConstants.MONGODB_TEMPLATE_ISOLATION) MongoTemplate mongoTemplateIsolation,
+      UserRepository userRepository, OrganizationRepository organizationRepository,
+      RoleRepository roleRepository, PermissionRepository permissionRepository,
+<span class="nc" id="L58">      GroupRepository groupRepository, ApplicationContext applicationContext) {</span>
+
+<span class="nc" id="L60">    this.userRepository = userRepository;</span>
+<span class="nc" id="L61">    this.organizationRepository = organizationRepository;</span>
+<span class="nc" id="L62">    this.roleRepository = roleRepository;</span>
+<span class="nc" id="L63">    this.permissionRepository = permissionRepository;</span>
+<span class="nc" id="L64">    this.groupRepository = groupRepository;</span>
+<span class="nc" id="L65">    this.applicationContext = applicationContext;</span>
+<span class="nc" id="L66">  }</span>
+
+
+  @EventListener(ApplicationReadyEvent.class)
+  private void applicationReadyEventListener(ApplicationReadyEvent event) {
+
+<span class="nc" id="L72">    log.info(&quot;Shared database is {}.&quot;, AccountConstant.DATABASE_SHARED);</span>
+
+<span class="nc" id="L74">    initializeAccountData();</span>
+
+
+
+<span class="nc" id="L78">  }</span>
+
+
+  private void refreshPermissions(Set&lt;Permission&gt; cPermissions, Set&lt;Permission&gt; nPermissions) {
+
+    // cPermissions �쁽�옱 沅뚰븳 紐⑸줉
+    // nPermissions �쟻�슜�맆 沅뚰븳 紐⑸줉
+
+    // �궘�젣 ���긽�씠 �떞湲� 紐⑸줉
+<span class="nc" id="L87">    Set&lt;Permission&gt; dPermissions = new HashSet&lt;&gt;(cPermissions);</span>
+
+    // 異붽� ���긽�씠 �떞湲� 紐⑸줉
+<span class="nc" id="L90">    Set&lt;Permission&gt; aPermissions = new HashSet&lt;&gt;(nPermissions);</span>
+
+    // �쁽�옱 沅뚰븳 紐⑸줉�뿉�꽌 �궗�슜�릺吏� �븡�쓣 沅뚰븳�쓣 異붿텧�븯�뿬 �궘�젣 (Asymmetric difference)
+    // dPermissions = {A,B,C} removeAll nPermissions = {B,C,D} &gt;&gt;&gt; dPermissions = {A}
+<span class="nc" id="L94">    dPermissions.removeAll(nPermissions);</span>
+
+    // 異붽��맆 沅뚰븳 紐⑸줉�뿉�꽌 �쁽�옱 �궗�슜�릺�뒗 寃껋쓣 �젣�쇅(Asymmetric difference)
+    // aPermissions = {A,B,C} removeAll cPermissions = {B,C,D} &gt;&gt;&gt; aPermissions = {A}
+<span class="nc" id="L98">    aPermissions.removeAll(cPermissions);</span>
+
+
+    // 紐⑤뱺 議곗쭅�쓽 �뿭�븷�뿉�꽌 �궗�슂�븯吏� �븡�뒗 沅뚰븳�쓣 �젣嫄�
+<span class="nc bnc" id="L102" title="All 2 branches missed.">    if (!dPermissions.isEmpty()) {</span>
+<span class="nc" id="L103">      List&lt;Organization&gt; organizations =</span>
+<span class="nc" id="L104">          organizationRepository.selectByDtimeIsNullIncludeIdFields();</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">      for (Organization organization : organizations) {</span>
+<span class="nc" id="L106">        TenantContextHolder.INSTANCE.setTenantId(organization.getId());</span>
+<span class="nc" id="L107">        List&lt;Role&gt; roles =</span>
+<span class="nc" id="L108">            roleRepository.findByPermissionsInAndDtimeIsNull(new ArrayList&lt;&gt;(dPermissions));</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        for (Role role : roles) {</span>
+<span class="nc" id="L110">          role.excludePermission(dPermissions);</span>
+<span class="nc" id="L111">        }</span>
+<span class="nc" id="L112">        roleRepository.saveAll(roles);</span>
+<span class="nc" id="L113">        TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L114">      }</span>
+    }
+
+<span class="nc bnc" id="L117" title="All 4 branches missed.">    if (!dPermissions.isEmpty() || !aPermissions.isEmpty()) {</span>
+<span class="nc" id="L118">      permissionRepository.deleteAll();</span>
+<span class="nc" id="L119">      permissionRepository.saveAll(nPermissions);</span>
+    }
+<span class="nc" id="L121">  }</span>
+
+
+
+  private Set&lt;Permission&gt; getAllermission() {
+<span class="nc" id="L126">    return new HashSet&lt;&gt;(permissionRepository.findAll());</span>
+  }
+
+
+
+  private Set&lt;Permission&gt; getPermissionsFromFile(String jsonFileName, ObjectMapper objectMapper) {
+
+<span class="nc bnc" id="L133" title="All 2 branches missed.">    String fileName = jsonFileName == null ? &quot;permission.json&quot; : jsonFileName;</span>
+<span class="nc" id="L134">    Reader reader = null;</span>
+<span class="nc" id="L135">    Set&lt;Permission&gt; permissions = null;</span>
+    try {
+<span class="nc" id="L137">      Resource resource = new FileSystemResource(fileName);</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">      if (!resource.exists()) {</span>
+<span class="nc" id="L139">        resource = new ClassPathResource(fileName);</span>
+      }
+
+<span class="nc bnc" id="L142" title="All 2 branches missed.">      if (!resource.exists()) {</span>
+<span class="nc" id="L143">        return new HashSet&lt;&gt;();</span>
+      }
+
+<span class="nc" id="L146">      reader = new InputStreamReader(resource.getInputStream(),</span>
+<span class="nc" id="L147">          Charset.forName(StandardCharsets.UTF_8.name()));</span>
+
+<span class="nc" id="L149">      permissions =</span>
+<span class="nc" id="L150">          new HashSet&lt;&gt;(Arrays.asList(objectMapper.readValue(reader, Permission[].class)));</span>
+
+<span class="nc" id="L152">    } catch (IOException e) {</span>
+<span class="nc" id="L153">      log.error(&quot;&quot;, e);</span>
+    } finally {
+      try {
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (reader != null) {</span>
+<span class="nc" id="L157">          reader.close();</span>
+        }
+<span class="nc" id="L159">      } catch (IOException ignore) {</span>
+<span class="nc" id="L160">      }</span>
+    }
+<span class="nc bnc" id="L162" title="All 2 branches missed.">    return permissions == null ? new HashSet&lt;&gt;() : permissions;</span>
+  }
+
+
+
+  @Override
+  public void initializeAccountData() {
+
+
+<span class="nc" id="L171">    Set&lt;Permission&gt; cPermissions = getAllermission();</span>
+
+<span class="nc" id="L173">    Set&lt;Permission&gt; nPermissions =</span>
+<span class="nc" id="L174">        getPermissionsFromFile(&quot;permission.json&quot;, applicationContext.getBean(ObjectMapper.class));</span>
+
+<span class="nc" id="L176">    refreshPermissions(cPermissions, nPermissions);</span>
+
+<span class="nc" id="L178">    User systemAdminUser = createUser(AccountConstant.SYSTEM_ADMIN_USER_LOGINID,</span>
+        AccountConstant.SYSTEM_ADMIN_USER_NAME);
+
+<span class="nc" id="L181">    User organizationAdminUser = createUser(AccountConstant.DEFAULT_ORGANIZATION_ADMIN_USER_LOGINID,</span>
+        AccountConstant.DEFAULT_ORGANIZATION_ADMIN_USER_NAME);
+
+<span class="nc" id="L184">    Organization organization = createOrganization(AccountConstant.DEFAULT_ORGANIZATION_NAME);</span>
+
+<span class="nc" id="L186">    setupOrganizationAndUser(organization, systemAdminUser);</span>
+<span class="nc" id="L187">    setupOrganizationAndUser(organization, organizationAdminUser);</span>
+
+<span class="nc" id="L189">    Role administratorsRole = createRole(organization, AccountConstant.ROLE_ADMINISTRATORS);</span>
+
+<span class="nc" id="L191">    setupRoleAndUser(organization, administratorsRole, systemAdminUser);</span>
+<span class="nc" id="L192">    setupRoleAndUser(organization, administratorsRole, organizationAdminUser);</span>
+<span class="nc" id="L193">    setupRoleAndPermission(organization, administratorsRole, nPermissions);</span>
+
+
+<span class="nc" id="L196">    Group everyOneGroup = createGroup(organization, AccountConstant.GROUP_EVERYONE);</span>
+
+<span class="nc" id="L198">    setupGroupAndUser(organization, everyOneGroup, systemAdminUser);</span>
+<span class="nc" id="L199">    setupGroupAndUser(organization, everyOneGroup, organizationAdminUser);</span>
+
+<span class="nc" id="L201">    addMissedSystemAdmin(organization, systemAdminUser);</span>
+<span class="nc" id="L202">  }</span>
+
+
+
+  private User createUser(String loginId, String userName) {
+
+<span class="nc" id="L208">    TenantContextHolder.INSTANCE.setTenantId(AccountConstant.DATABASE_SHARED);</span>
+<span class="nc" id="L209">    long currentUnixTime = Instant.now().getEpochSecond();</span>
+<span class="nc" id="L210">    User user = userRepository.findUserByLoginIdAndDtimeIsNull(loginId);</span>
+
+<span class="nc bnc" id="L212" title="All 2 branches missed.">    if (user != null) {</span>
+<span class="nc" id="L213">      log.info(&quot;Exists user. [loginId:{}, name:{}]&quot;, user.getLoginId(), user.getName());</span>
+<span class="nc" id="L214">      TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L215">      return user;</span>
+    }
+
+<span class="nc" id="L218">    String salt = SecurityContext.INSTANCE.generateSalt();</span>
+<span class="nc" id="L219">    String password =</span>
+<span class="nc" id="L220">        SecurityContext.INSTANCE.hash(SecurityContext.INSTANCE.hashFromUI(loginId), salt);</span>
+
+<span class="nc" id="L222">    user = User.builder().build();</span>
+<span class="nc" id="L223">    user.setLoginId(loginId);</span>
+<span class="nc" id="L224">    user.setName(userName);</span>
+<span class="nc" id="L225">    user.setDescription(&quot;My name is &quot; + userName + &quot;.&quot;);</span>
+<span class="nc" id="L226">    user.setLocked(false);</span>
+<span class="nc" id="L227">    user.setNeedChangePassword(false);</span>
+<span class="nc" id="L228">    user.setCtime(currentUnixTime);</span>
+<span class="nc" id="L229">    user.setMtime(currentUnixTime);</span>
+<span class="nc" id="L230">    user.setPassword(password);</span>
+<span class="nc" id="L231">    user.setSalt(salt);</span>
+<span class="nc" id="L232">    userRepository.save(user);</span>
+
+<span class="nc" id="L234">    TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L235">    log.info(&quot;Create user. [loginId:{}, name:{}]&quot;, user.getLoginId(), user.getName());</span>
+<span class="nc" id="L236">    return user;</span>
+  }
+
+
+  private Organization createOrganization(String organizationName) {
+
+<span class="nc" id="L242">    TenantContextHolder.INSTANCE.setTenantId(AccountConstant.DATABASE_SHARED);</span>
+<span class="nc" id="L243">    long currentUnixTime = Instant.now().getEpochSecond();</span>
+<span class="nc" id="L244">    Organization organization =</span>
+<span class="nc" id="L245">        organizationRepository.findFirstByNameAndDtimeIsNull(organizationName);</span>
+
+<span class="nc bnc" id="L247" title="All 2 branches missed.">    if (organization != null) {</span>
+<span class="nc" id="L248">      log.info(&quot;Exists organization. [id:{}, name:{}]&quot;, organization.getId(),</span>
+<span class="nc" id="L249">          organization.getName());</span>
+<span class="nc" id="L250">      TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L251">      return organization;</span>
+    }
+
+<span class="nc" id="L254">    organization = Organization.builder().build();</span>
+<span class="nc" id="L255">    organization.setName(organizationName);</span>
+<span class="nc" id="L256">    organization.setDescription(&quot;This is an organization created by default.&quot;);</span>
+<span class="nc" id="L257">    organization.setCtime(currentUnixTime);</span>
+<span class="nc" id="L258">    organization.setMtime(currentUnixTime);</span>
+<span class="nc" id="L259">    organizationRepository.save(organization);</span>
+
+<span class="nc" id="L261">    TenantMongoDBUtils.INSTANCE.createMongoDBDatabase(applicationContext, organization.getId());</span>
+
+<span class="nc" id="L263">    log.info(&quot;Create Organization. [organizationId:{}, organizationName:{}]&quot;, organization.getId(),</span>
+<span class="nc" id="L264">        organization.getName());</span>
+<span class="nc" id="L265">    TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L266">    return organization;</span>
+
+  }
+
+
+  private Role createRole(Organization organization, String roleName) {
+
+<span class="nc" id="L273">    TenantContextHolder.INSTANCE.setTenantId(organization.getId());</span>
+<span class="nc" id="L274">    long currentUnixTime = Instant.now().getEpochSecond();</span>
+<span class="nc" id="L275">    Role role = roleRepository.findFirstByNameAndDtimeIsNull(roleName);</span>
+
+<span class="nc bnc" id="L277" title="All 2 branches missed.">    if (role != null) {</span>
+<span class="nc" id="L278">      log.info(&quot;Exists role. [organizationId:{}, roleId:{}, roleName:{}]&quot;, organization.getId(),</span>
+<span class="nc" id="L279">          role.getId(), role.getName());</span>
+<span class="nc" id="L280">      TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L281">      return role;</span>
+    }
+
+<span class="nc" id="L284">    role = Role.builder().build();</span>
+<span class="nc" id="L285">    role.setName(roleName);</span>
+<span class="nc" id="L286">    role.setDescription(&quot;&quot;);</span>
+<span class="nc" id="L287">    role.setCtime(currentUnixTime);</span>
+<span class="nc" id="L288">    role.setMtime(currentUnixTime);</span>
+<span class="nc" id="L289">    roleRepository.save(role);</span>
+<span class="nc" id="L290">    TenantContextHolder.INSTANCE.clear();</span>
+
+<span class="nc" id="L292">    log.info(&quot;Create role. [organizationId:{}, roleId:{}, roleName:{}]&quot;, organization.getId(),</span>
+<span class="nc" id="L293">        role.getId(), role.getName());</span>
+
+<span class="nc" id="L295">    return role;</span>
+  }
+
+
+
+  private Group createGroup(Organization organization, String groupName) {
+<span class="nc" id="L301">    TenantContextHolder.INSTANCE.setTenantId(organization.getId());</span>
+<span class="nc" id="L302">    Group group = groupRepository.findFirstByNameAndDtimeIsNull(groupName);</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">    if (group != null) {</span>
+<span class="nc" id="L304">      log.info(&quot;Exists group. [organizationId:{}, groupId:{}, groupName:{}]&quot;, organization.getId(),</span>
+<span class="nc" id="L305">          group.getId(), group.getName());</span>
+<span class="nc" id="L306">      TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L307">      return group;</span>
+    }
+
+
+<span class="nc" id="L311">    group = Group.builder().build();</span>
+<span class="nc" id="L312">    group.setName(groupName);</span>
+<span class="nc" id="L313">    group.setDescription(&quot;&quot;);</span>
+
+<span class="nc" id="L315">    long time = Instant.now().getEpochSecond();</span>
+<span class="nc" id="L316">    group.setCtime(time);</span>
+<span class="nc" id="L317">    group.setMtime(time);</span>
+<span class="nc" id="L318">    groupRepository.save(group);</span>
+<span class="nc" id="L319">    TenantContextHolder.INSTANCE.clear();</span>
+
+<span class="nc" id="L321">    return group;</span>
+  }
+
+
+
+  private void setupOrganizationAndUser(Organization organization, User user) {
+
+<span class="nc bnc" id="L328" title="All 4 branches missed.">    if (organization == null || user == null) {</span>
+<span class="nc" id="L329">      log.info(&quot;Data is null. [organization:{}, user:{}]&quot;, organization, user);</span>
+<span class="nc" id="L330">      return;</span>
+    }
+
+<span class="nc" id="L333">    Assert.notNull(organization.getId(), &quot;Organization id must not be null.&quot;);</span>
+<span class="nc" id="L334">    Assert.notNull(user.getId(), &quot;User id must not be null.&quot;);</span>
+
+<span class="nc bnc" id="L336" title="All 2 branches missed.">    if (!organization.hasUser(user.getId())) {</span>
+<span class="nc" id="L337">      organization.addUser(user);</span>
+<span class="nc" id="L338">      organizationRepository.save(organization);</span>
+    }
+
+<span class="nc bnc" id="L341" title="All 2 branches missed.">    if (!user.hasOrganization(organization.getId())) {</span>
+<span class="nc" id="L342">      user.addOrganization(organization);</span>
+<span class="nc" id="L343">      userRepository.save(user);</span>
+    }
+<span class="nc" id="L345">  }</span>
+
+
+  private void setupRoleAndUser(Organization organization, Role role, User user) {
+
+<span class="nc bnc" id="L350" title="All 6 branches missed.">    if (organization == null || role == null || user == null) {</span>
+<span class="nc" id="L351">      log.info(&quot;Data is null. [organization:{}, role:{}, user:{}]&quot;, organization, role, user);</span>
+<span class="nc" id="L352">      return;</span>
+    }
+
+<span class="nc" id="L355">    Assert.notNull(organization.getId(), &quot;Organization id must not be null.&quot;);</span>
+<span class="nc" id="L356">    Assert.notNull(role.getId(), &quot;Role id must not be null.&quot;);</span>
+<span class="nc" id="L357">    Assert.notNull(user.getId(), &quot;User id must not be null.&quot;);</span>
+
+<span class="nc" id="L359">    TenantContextHolder.INSTANCE.setTenantId(organization.getId());</span>
+
+<span class="nc bnc" id="L361" title="All 2 branches missed.">    if (!role.hasUser(user.getId())) {</span>
+<span class="nc" id="L362">      role.addUser(user);</span>
+<span class="nc" id="L363">      roleRepository.save(role);</span>
+    }
+
+<span class="nc" id="L366">    TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L367">  }</span>
+
+
+  private void setupRoleAndPermission(Organization organization, Role role,
+      Collection&lt;Permission&gt; permissions) {
+
+<span class="nc bnc" id="L373" title="All 6 branches missed.">    if (organization == null || role == null || permissions == null) {</span>
+<span class="nc" id="L374">      log.info(&quot;Data is null. [organization:{}, role:{}, permissions:{}]&quot;, organization, role,</span>
+          permissions);
+<span class="nc" id="L376">      return;</span>
+    }
+
+<span class="nc" id="L379">    Assert.notNull(organization.getId(), &quot;Organization id must not be null.&quot;);</span>
+<span class="nc" id="L380">    Assert.notNull(role.getId(), &quot;Role id must not be null.&quot;);</span>
+
+<span class="nc" id="L382">    TenantContextHolder.INSTANCE.setTenantId(organization.getId());</span>
+
+<span class="nc" id="L384">    boolean check = false;</span>
+<span class="nc bnc" id="L385" title="All 2 branches missed.">    for (Permission permission : permissions) {</span>
+<span class="nc bnc" id="L386" title="All 2 branches missed.">      if (!role.hasPermission(permission.getId())) {</span>
+<span class="nc" id="L387">        check = true;</span>
+<span class="nc" id="L388">        break;</span>
+      }
+<span class="nc" id="L390">    }</span>
+
+<span class="nc bnc" id="L392" title="All 2 branches missed.">    if (check) {</span>
+<span class="nc" id="L393">      role.addPermission(permissions);</span>
+<span class="nc" id="L394">      roleRepository.save(role);</span>
+    }
+
+<span class="nc" id="L397">    TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L398">  }</span>
+
+
+
+  private void setupGroupAndUser(Organization organization, Group group, User user) {
+
+<span class="nc bnc" id="L404" title="All 6 branches missed.">    if (organization == null || group == null || user == null) {</span>
+<span class="nc" id="L405">      log.info(&quot;Data is null. [organization:{}, group:{}, user:{}]&quot;, organization, group, user);</span>
+<span class="nc" id="L406">      return;</span>
+    }
+
+<span class="nc" id="L409">    Assert.notNull(organization.getId(), &quot;Organization id must not be null.&quot;);</span>
+<span class="nc" id="L410">    Assert.notNull(group.getId(), &quot;Group id must not be null.&quot;);</span>
+<span class="nc" id="L411">    Assert.notNull(user.getId(), &quot;User id must not be null.&quot;);</span>
+
+<span class="nc" id="L413">    TenantContextHolder.INSTANCE.setTenantId(organization.getId());</span>
+
+<span class="nc bnc" id="L415" title="All 2 branches missed.">    if (!group.hasUser(user.getId())) {</span>
+<span class="nc" id="L416">      group.addUser(user);</span>
+<span class="nc" id="L417">      groupRepository.save(group);</span>
+    }
+
+<span class="nc" id="L420">    TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L421">  }</span>
+
+
+
+  private void addMissedSystemAdmin(Organization organization, User systemAdministratorUser) {
+    // �쟾泥� 議곗쭅�쓣 �깘�깋�븯�뿬 �떆�뒪�뀥 愿�由ъ옄�쓽 �늻�씫 �뿬遺�瑜� �솗�씤�븯�뿬 異붽�
+<span class="nc" id="L427">    long currentUnixTime = Instant.now().getEpochSecond();</span>
+<span class="nc" id="L428">    List&lt;Organization&gt; organizations = organizationRepository.findByDtimeIsNullOrderByNameAsc();</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">    for (Organization o : organizations) {</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">      if (!o.hasUser(systemAdministratorUser.getId())) {</span>
+<span class="nc" id="L431">        o.addUser(systemAdministratorUser);</span>
+<span class="nc" id="L432">        o.setMtime(currentUnixTime);</span>
+<span class="nc" id="L433">        organizationRepository.save(o);</span>
+
+<span class="nc" id="L435">        systemAdministratorUser.addOrganization(o);</span>
+<span class="nc" id="L436">        systemAdministratorUser.setMtime(currentUnixTime);</span>
+<span class="nc" id="L437">        userRepository.save(systemAdministratorUser);</span>
+
+<span class="nc" id="L439">        log.info(&quot;Add systemAdministrator. [organization:{}, user:{}]&quot;, organization,</span>
+            systemAdministratorUser);
+      }
+<span class="nc" id="L442">    }</span>
+<span class="nc" id="L443">  }</span>
+
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

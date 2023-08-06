@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoleManagementController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.controller</a> &gt; <span class="el_source">RoleManagementController.java</span></div><h1>RoleManagementController.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.controller;
+
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.data.domain.Page;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.nkia.lucida.account.dto.RequestParameterDto;
+import com.nkia.lucida.account.dto.RoleInfoDto;
+import com.nkia.lucida.account.dto.RoleSaveDto;
+import com.nkia.lucida.account.entity.Group;
+import com.nkia.lucida.account.entity.Permission;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.account.entity.User;
+import com.nkia.lucida.account.service.GroupManagementService;
+import com.nkia.lucida.account.service.OrganizationManagementService;
+import com.nkia.lucida.account.service.PermissionService;
+import com.nkia.lucida.account.service.RoleManagementService;
+import com.nkia.lucida.account.service.UserManagementService;
+import com.nkia.lucida.common.auth.JwtTokenService;
+import com.nkia.lucida.common.dto.ApiResponseData;
+import com.nkia.lucida.common.mongodb.CriteriaMakeHelper;
+import com.nkia.lucida.common.mongodb.GridFiltersPageableDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@RestController
+@RequestMapping(&quot;/api/account&quot;)
+@Tag(name = &quot;5. Role&quot;, description = &quot;&quot;)
+public class RoleManagementController {
+
+
+  private final JwtTokenService jwtTokenService;
+  private final UserManagementService userManagementService;
+  private final RoleManagementService roleManagementService;
+  private final PermissionService permissionService;
+  private final GroupManagementService groupManagementService;
+
+  public RoleManagementController(JwtTokenService jwtTokenService,
+      OrganizationManagementService organizationManagementService,
+      UserManagementService userManagementService, RoleManagementService roleManagementService,
+<span class="nc" id="L51">      PermissionService permissionService, GroupManagementService groupManagementService) {</span>
+
+<span class="nc" id="L53">    this.jwtTokenService = jwtTokenService;</span>
+<span class="nc" id="L54">    this.userManagementService = userManagementService;</span>
+<span class="nc" id="L55">    this.roleManagementService = roleManagementService;</span>
+<span class="nc" id="L56">    this.permissionService = permissionService;</span>
+<span class="nc" id="L57">    this.groupManagementService = groupManagementService;</span>
+<span class="nc" id="L58">  }</span>
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�뿭�븷�쓣 �깮�꽦�븳�떎. (admin 怨꾩젙�� �옄�룞�쑝濡� �룷�븿�릺�뼱 �깮�꽦)&quot;)
+  @PostMapping(path = &quot;/role/insert&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; insertRole(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RoleSaveDto roleSaveDto) {
+
+<span class="nc" id="L71">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L72">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L74">    roleSaveDto.setId(null);</span>
+<span class="nc" id="L75">    Role role = roleManagementService.insertRole(lUserId, lOrganizationId, roleSaveDto.toEntity(),</span>
+<span class="nc" id="L76">        roleSaveDto.getUserIds(), roleSaveDto.getPermissionIds(), roleSaveDto.getGroupIds());</span>
+
+<span class="nc" id="L78">    return ApiResponseData.createSuccess(new RoleInfoDto(role));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;�뿭�븷�쓽 �젙蹂대�� 蹂�寃쏀븳�떎.&quot;)
+  @PostMapping(path = &quot;/role/update&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; updateRole(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RoleSaveDto roleSaveDto) {
+
+<span class="nc" id="L91">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L92">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L94">    Role role = roleManagementService.updateRole(lUserId, lOrganizationId, roleSaveDto.toEntity(),</span>
+<span class="nc" id="L95">        roleSaveDto.getUserIds(), roleSaveDto.getPermissionIds(), roleSaveDto.getGroupIds());</span>
+
+<span class="nc" id="L97">    return ApiResponseData.createSuccess(new RoleInfoDto(role));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;�뿭�븷�쓣 �궘�젣�븳�떎.&quot;)
+  @PostMapping(path = &quot;/role/delete&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; deleteRole(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;List&lt;String&gt;&gt; requestParameterDto) {
+
+<span class="nc" id="L110">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L111">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L113">    roleManagementService.deleteRole(lUserId, lOrganizationId, false,</span>
+<span class="nc" id="L114">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L116">    return ApiResponseData.createSuccess(requestParameterDto.getParameter());</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;�뿭�븷�쓽 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/role/list&quot;)
+  public ApiResponseData&lt;Object&gt; selectRoleByConditions(@Parameter(hidden = true) @RequestHeader(
+      value = HttpHeaders.AUTHORIZATION) String headerAuthorization) {
+
+<span class="nc" id="L126">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L127">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L129">    List&lt;Role&gt; roles = roleManagementService.selectRoleByConditions(lUserId, lOrganizationId, null);</span>
+
+<span class="nc" id="L131">    List&lt;RoleInfoDto&gt; roleInfoDtos = roles.stream().map(o -&gt; {</span>
+<span class="nc" id="L132">      return new RoleInfoDto(o);</span>
+<span class="nc" id="L133">    }).toList();</span>
+
+<span class="nc" id="L135">    return ApiResponseData.createSuccess(roleInfoDtos);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�꽑�깮�븳 �뿭�븷�쓽 �긽�꽭 �젙蹂� 諛� �궗�슜�옄 紐⑸줉�쓣 議고쉶 �븳�떎. (�벑濡앸맂 �궗�슜�옄�뒗 own=true)&quot;)
+  @PostMapping(path = &quot;/role/detail&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; selectRoleById(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;String&gt; requestParameterDto) {
+
+<span class="nc" id="L149">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L150">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L152">    Role role = roleManagementService.selectRoleById(lUserId, lOrganizationId,</span>
+<span class="nc" id="L153">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L155">    List&lt;User&gt; users = userManagementService.selectUserByRoleWithOwn(lUserId, lOrganizationId,</span>
+<span class="nc" id="L156">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L158">    Set&lt;Permission&gt; permissions = permissionService.selectPermissionByRoleWithOwn(lUserId,</span>
+<span class="nc" id="L159">        lOrganizationId, requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L161">    List&lt;Group&gt; groups = groupManagementService.selectGroupByRoleWithOwn(lUserId, lOrganizationId,</span>
+<span class="nc" id="L162">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L164">    return ApiResponseData.createSuccess(new RoleInfoDto(role, users, permissions, groups));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�룞�씪�븳 議곗쭅�쓽 �씠由꾩씠 議댁옱�븯�뒗 吏� �솗�씤. (議댁옱=true)&quot;)
+  @PostMapping(path = &quot;/role/check-duplicate-name&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; checkDuplicateName(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;String&gt; requestParameterDto) {
+
+<span class="nc" id="L178">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L179">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L181">    Boolean duplicate = roleManagementService.checkDuplicateName(lUserId, lOrganizationId,</span>
+<span class="nc" id="L182">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L184">    return ApiResponseData.createSuccess(duplicate);</span>
+  }
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;�뿭�븷�쓽 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/role/list-page-filter&quot;)
+  public ApiResponseData&lt;Object&gt; selectRoleByConditions(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody GridFiltersPageableDto gridFiltersPageableDto) {
+
+<span class="nc" id="L195">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L196">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L198">    List&lt;Criteria&gt; criterias = gridFiltersPageableDto.getGridFilters().stream().map(i -&gt; {</span>
+<span class="nc" id="L199">      return CriteriaMakeHelper.INSTANCE.get(i.getField(), i.getOperator(), i.getValues());</span>
+<span class="nc" id="L200">    }).toList();</span>
+
+<span class="nc" id="L202">    Page&lt;Role&gt; pageItems = roleManagementService.selectRoleByConditions(lUserId, lOrganizationId,</span>
+<span class="nc" id="L203">        criterias, gridFiltersPageableDto.toPageable());</span>
+
+<span class="nc" id="L205">    long rowNumIndex = pageItems.getPageable().getOffset();</span>
+<span class="nc" id="L206">    AtomicInteger index = new AtomicInteger((int) rowNumIndex);</span>
+<span class="nc" id="L207">    Page&lt;RoleInfoDto&gt; roleInfoDtos = pageItems.map(u -&gt; {</span>
+<span class="nc" id="L208">      RoleInfoDto dto = new RoleInfoDto(u);</span>
+<span class="nc" id="L209">      dto.setIndex(index.incrementAndGet());</span>
+<span class="nc" id="L210">      return dto;</span>
+    });
+<span class="nc" id="L212">    return ApiResponseData.createSuccess(roleInfoDtos);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

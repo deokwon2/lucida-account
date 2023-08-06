@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrganizationManagementController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.controller</a> &gt; <span class="el_source">OrganizationManagementController.java</span></div><h1>OrganizationManagementController.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.controller;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.data.domain.Page;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.nkia.lucida.account.dto.OrganizationInfoDto;
+import com.nkia.lucida.account.dto.OrganizationSaveDto;
+import com.nkia.lucida.account.dto.RequestParameterDto;
+import com.nkia.lucida.account.entity.Organization;
+import com.nkia.lucida.account.entity.User;
+import com.nkia.lucida.account.service.OrganizationManagementService;
+import com.nkia.lucida.account.service.UserManagementService;
+import com.nkia.lucida.common.auth.JwtTokenService;
+import com.nkia.lucida.common.dto.ApiResponseData;
+import com.nkia.lucida.common.exception.AuthException;
+import com.nkia.lucida.common.exception.GlobalErrorCode;
+import com.nkia.lucida.common.mongodb.CriteriaMakeHelper;
+import com.nkia.lucida.common.mongodb.GridFiltersPageableDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@RestController
+@RequestMapping(&quot;/api/account&quot;)
+@Tag(name = &quot;3. Organization&quot;, description = &quot;&quot;)
+public class OrganizationManagementController {
+
+
+  private final JwtTokenService jwtTokenService;
+  private final OrganizationManagementService organizationManagementService;
+  private final UserManagementService userManagementService;
+
+  public OrganizationManagementController(JwtTokenService jwtTokenService,
+      OrganizationManagementService organizationManagementService,
+<span class="nc" id="L44">      UserManagementService userManagementService) {</span>
+<span class="nc" id="L45">    this.jwtTokenService = jwtTokenService;</span>
+<span class="nc" id="L46">    this.organizationManagementService = organizationManagementService;</span>
+<span class="nc" id="L47">    this.userManagementService = userManagementService;</span>
+<span class="nc" id="L48">  }</span>
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;議곗쭅�쓣 �깮�꽦�븳�떎. (admin 怨꾩젙�� �옄�룞�쑝濡� �룷�븿�릺�뼱 �깮�꽦)&quot;)
+  @PostMapping(path = &quot;/organization/insert&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; insertOrganization(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody OrganizationSaveDto organizationSaveDto) {
+
+<span class="nc" id="L60">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L61">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L63">    boolean check = userManagementService.checkDuplicateLoginId(lUserId, lOrganizationId,</span>
+<span class="nc" id="L64">        organizationSaveDto.getAddAdminLoginId());</span>
+
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    if (check) {</span>
+<span class="nc" id="L67">      throw new AuthException(</span>
+<span class="nc" id="L68">          &quot;Duplicate loginId. (&quot; + organizationSaveDto.getAddAdminLoginId() + &quot;)&quot;,</span>
+          GlobalErrorCode.INVALID_ARGUMENTS, null);
+    }
+
+<span class="nc" id="L72">    Organization newOrganization = organizationManagementService.insertOrganization(lUserId,</span>
+<span class="nc" id="L73">        lOrganizationId, organizationSaveDto.toEntity(), organizationSaveDto.getUserIds(),</span>
+<span class="nc" id="L74">        organizationSaveDto.getAddAdminLoginId(), organizationSaveDto.getAddAdminName(),</span>
+<span class="nc" id="L75">        organizationSaveDto.getAddAdminPassword());</span>
+
+<span class="nc" id="L77">    return ApiResponseData.createSuccess(new OrganizationInfoDto(newOrganization));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;議곗쭅�쓽 �젙蹂대�� 蹂�寃쏀븳�떎.&quot;)
+  @PostMapping(path = &quot;/organization/update&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; updateOrganization(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody OrganizationSaveDto organizationSaveDto) {
+
+<span class="nc" id="L90">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L91">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L93">    Organization updateOrganization = organizationManagementService.updateOrganization(lUserId,</span>
+<span class="nc" id="L94">        lOrganizationId, organizationSaveDto.toEntity(), organizationSaveDto.getUserIds());</span>
+
+<span class="nc" id="L96">    return ApiResponseData.createSuccess(new OrganizationInfoDto(updateOrganization));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;議곗쭅�뿉�꽌 �궗�슜�옄瑜� �젣嫄고븳�떎.&quot;,
+      description = &quot;id = 議곗쭅ID, userIds = ['�궗�슜�옄ID 1', '�궗�슜�옄ID 2' ...]&quot;)
+  @PostMapping(path = &quot;/organization/update-exclude-users&quot;,
+      consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; excludeUserFromOrganization(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody OrganizationSaveDto organizationSaveDto) {
+
+<span class="nc" id="L110">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L111">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L113">    Organization updateOrganization = organizationManagementService.excludeUserFromOrganization(</span>
+<span class="nc" id="L114">        lUserId, lOrganizationId, organizationSaveDto.getId(), organizationSaveDto.getUserIds());</span>
+
+<span class="nc" id="L116">    return ApiResponseData.createSuccess(new OrganizationInfoDto(updateOrganization));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;議곗쭅�뿉�꽌 �궗�슜�옄瑜� 異붽��븳�떎.&quot;,
+      description = &quot;id = 議곗쭅ID, userIds = ['�궗�슜�옄ID 1', '�궗�슜�옄ID 2' ...]&quot;)
+  @PostMapping(path = &quot;/organization/update-add-users&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; addUserFromOrganization(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody OrganizationSaveDto organizationSaveDto) {
+
+<span class="nc" id="L130">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L131">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L133">    Organization updateOrganization = organizationManagementService.addUserFromOrganization(lUserId,</span>
+<span class="nc" id="L134">        lOrganizationId, organizationSaveDto.getId(), organizationSaveDto.getUserIds());</span>
+
+<span class="nc" id="L136">    return ApiResponseData.createSuccess(new OrganizationInfoDto(updateOrganization));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;議곗쭅�쓣 �궘�젣�븳�떎.&quot;,
+      description = &quot;parameter = 議곗쭅ID&quot;)
+  @PostMapping(path = &quot;/organization/delete&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;List&lt;String&gt;&gt; deleteOrganization(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;List&lt;String&gt;&gt; requestParameterDto) {
+
+<span class="nc" id="L150">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L151">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L153">    organizationManagementService.deleteOrganization(lUserId, lOrganizationId, false,</span>
+<span class="nc" id="L154">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L156">    return ApiResponseData.createSuccess(requestParameterDto.getParameter());</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;議곗쭅�쓽 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/organization/list&quot;)
+  public ApiResponseData&lt;Object&gt; selectOrganizationByConditions(@Parameter(
+      hidden = true) @RequestHeader(value = HttpHeaders.AUTHORIZATION) String headerAuthorization) {
+
+<span class="nc" id="L166">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L167">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L169">    List&lt;Organization&gt; organizations = organizationManagementService</span>
+<span class="nc" id="L170">        .selectOrganizationByConditions(lUserId, lOrganizationId, null);</span>
+
+<span class="nc" id="L172">    List&lt;OrganizationInfoDto&gt; organizationInfoDtos = organizations.stream().map(o -&gt; {</span>
+<span class="nc" id="L173">      return new OrganizationInfoDto(o);</span>
+<span class="nc" id="L174">    }).toList();</span>
+
+<span class="nc" id="L176">    return ApiResponseData.createSuccess(organizationInfoDtos);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�꽑�깮�븳 議곗쭅�쓽 �긽�꽭 �젙蹂� 諛� �궗�슜�옄 紐⑸줉�쓣 議고쉶 �븳�떎. (�벑濡앸맂 �궗�슜�옄�뒗 own=true)&quot;,
+      description = &quot;parameter = 議곗쭅ID&quot;)
+  @PostMapping(path = &quot;/organization/detail&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; selectUserById(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;String&gt; requestParameterDto) {
+
+<span class="nc" id="L191">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L192">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L194">    Organization organization = organizationManagementService.selectOrganizationById(lUserId,</span>
+<span class="nc" id="L195">        lOrganizationId, requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L197">    List&lt;User&gt; users = userManagementService.selectUserByOrganizationWithOwn(lUserId,</span>
+<span class="nc" id="L198">        lOrganizationId, requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L200">    return ApiResponseData.createSuccess(new OrganizationInfoDto(organization, users));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�룞�씪�븳 議곗쭅�쓽 �씠由꾩씠 議댁옱�븯�뒗 吏� �솗�씤. (議댁옱=true)&quot;, description = &quot;parameter = 議곗쭅ID&quot;)
+  @PostMapping(path = &quot;/organization/check-duplicate-name&quot;,
+      consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; checkDuplicateName(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;String&gt; requestParameterDto) {
+
+<span class="nc" id="L214">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L215">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L217">    Boolean duplicate = organizationManagementService.checkDuplicateName(lUserId, lOrganizationId,</span>
+<span class="nc" id="L218">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L220">    return ApiResponseData.createSuccess(duplicate);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;議곗쭅�쓽 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/organization/list-page-filter&quot;)
+  public ApiResponseData&lt;Object&gt; selectOrganizationByConditions(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody GridFiltersPageableDto gridFiltersPageableDto) {
+
+<span class="nc" id="L232">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L233">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+
+<span class="nc" id="L236">    List&lt;Criteria&gt; criterias = gridFiltersPageableDto.getGridFilters().stream().map(i -&gt; {</span>
+<span class="nc" id="L237">      return CriteriaMakeHelper.INSTANCE.get(i.getField(), i.getOperator(), i.getValues());</span>
+<span class="nc" id="L238">    }).toList();</span>
+
+<span class="nc" id="L240">    Page&lt;Organization&gt; items = organizationManagementService.selectOrganizationByConditions(lUserId,</span>
+<span class="nc" id="L241">        lOrganizationId, criterias, gridFiltersPageableDto.toPageable());</span>
+
+
+<span class="nc" id="L244">    long rowNumIndex = items.getPageable().getOffset();</span>
+<span class="nc" id="L245">    AtomicInteger index = new AtomicInteger((int) rowNumIndex);</span>
+<span class="nc" id="L246">    Page&lt;OrganizationInfoDto&gt; dtoPage = items.map(u -&gt; {</span>
+<span class="nc" id="L247">      OrganizationInfoDto dto = new OrganizationInfoDto(u);</span>
+<span class="nc" id="L248">      dto.setIndex(index.incrementAndGet());</span>
+<span class="nc" id="L249">      return dto;</span>
+    });
+
+<span class="nc" id="L252">    return ApiResponseData.createSuccess(dtoPage);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoleRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.repository</a> &gt; <span class="el_source">RoleRepositoryImpl.java</span></div><h1>RoleRepositoryImpl.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.repository;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.stereotype.Repository;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.common.mongodb.GridPaginationHelper;
+import com.nkia.lucida.common.mongodb.TenantMongoDBConstants;
+
+
+@Repository
+public class RoleRepositoryImpl implements RoleRepositoryIf {
+
+
+  private final MongoTemplate mongoTemplateIsolation;
+
+
+  public RoleRepositoryImpl(
+      @Qualifier(TenantMongoDBConstants.MONGODB_TEMPLATE_ISOLATION) MongoTemplate mongoTemplateIsolation,
+<span class="nc" id="L25">      @Qualifier(TenantMongoDBConstants.MONGODB_TEMPLATE_SHARED) MongoTemplate mongoTemplateShared) {</span>
+<span class="nc" id="L26">    this.mongoTemplateIsolation = mongoTemplateIsolation;</span>
+<span class="nc" id="L27">  }</span>
+
+
+
+  @Override
+  public Page&lt;Role&gt; selectByConditions(String requestUserId, String requestOrganizationId,
+      List&lt;Criteria&gt; criterias, Pageable pageable) {
+
+<span class="nc" id="L35">    List&lt;Criteria&gt; criteriaItems = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L36">    criteriaItems.addAll(criterias);</span>
+<span class="nc" id="L37">    criteriaItems.add(Criteria.where(&quot;dtime&quot;).isNull());</span>
+
+
+    // Query query = new Query().with(pageable);
+    // query.addCriteria(Criteria.where(&quot;&quot;).andOperator(criteriaItems));
+    //
+    // List&lt;Role&gt; items = mongoTemplateIsolation.find(query, Role.class);
+    // Page&lt;Role&gt; pateItems = PageableExecutionUtils.getPage(items, pageable,
+    // () -&gt; mongoTemplateShared.count(query.skip(-1).limit(-1), Role.class));
+    //
+    // return pateItems;
+
+<span class="nc" id="L49">    return GridPaginationHelper.INSTANCE.pageFind(mongoTemplateIsolation, pageable, criteriaItems,</span>
+        &quot;role&quot;, Role.class);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

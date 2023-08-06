@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PermissionManagementController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.controller</a> &gt; <span class="el_source">PermissionManagementController.java</span></div><h1>PermissionManagementController.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.controller;
+
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.data.domain.Page;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.nkia.lucida.account.dto.PermissionInfoDto;
+import com.nkia.lucida.account.dto.RequestParameterDto;
+import com.nkia.lucida.account.entity.Permission;
+import com.nkia.lucida.account.service.PermissionService;
+import com.nkia.lucida.common.auth.JwtTokenService;
+import com.nkia.lucida.common.dto.ApiResponseData;
+import com.nkia.lucida.common.mongodb.CriteriaMakeHelper;
+import com.nkia.lucida.common.mongodb.GridFiltersPageableDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@RestController
+@RequestMapping(&quot;/api/account&quot;)
+@Tag(name = &quot;4. Permission&quot;, description = &quot;&quot;)
+public class PermissionManagementController {
+
+
+  private final JwtTokenService jwtTokenService;
+  private final PermissionService permissionService;
+
+  public PermissionManagementController(JwtTokenService jwtTokenService,
+<span class="nc" id="L38">      PermissionService permissionService) {</span>
+
+<span class="nc" id="L40">    this.jwtTokenService = jwtTokenService;</span>
+<span class="nc" id="L41">    this.permissionService = permissionService;</span>
+<span class="nc" id="L42">  }</span>
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;濡쒓렇�씤 �궗�슜�옄�쓽 �넗�겙�쓣 湲곗��쑝濡� 沅뚰븳 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/permission/list-by-token&quot;)
+  public ApiResponseData&lt;Object&gt; selectPermissionByToken(@Parameter(hidden = true) @RequestHeader(
+      value = HttpHeaders.AUTHORIZATION) String headerAuthorization) {
+<span class="nc" id="L50">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L51">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L52">    List&lt;String&gt; lRoleIds = jwtTokenService.getRoleIdsFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L53">    Set&lt;String&gt; permissionIds =</span>
+<span class="nc" id="L54">        permissionService.selectPermissionByRoleIncludeIdFields(lUserId, lOrganizationId, lRoleIds);</span>
+<span class="nc" id="L55">    return ApiResponseData.createSuccess(permissionIds);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�쟻�슜�븷 �닔 �엳�뒗 紐⑤뱺 沅뚰븳 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/permission/list-all-own&quot;)
+  public ApiResponseData&lt;Object&gt; selectPermissionAll(@Parameter(hidden = true) @RequestHeader(
+      value = HttpHeaders.AUTHORIZATION) String headerAuthorization) {
+
+<span class="nc" id="L66">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L67">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+
+<span class="nc" id="L70">    Set&lt;Permission&gt; permissions =</span>
+<span class="nc" id="L71">        permissionService.selectPermissionAllWithOwn(lUserId, lOrganizationId);</span>
+
+<span class="nc" id="L73">    List&lt;PermissionInfoDto&gt; permissionInfoDtos = permissions.stream().map(p -&gt; {</span>
+<span class="nc" id="L74">      PermissionInfoDto permissionInfoDto = new PermissionInfoDto();</span>
+<span class="nc" id="L75">      return permissionInfoDto.toDto(p);</span>
+<span class="nc" id="L76">    }).toList();</span>
+<span class="nc" id="L77">    return ApiResponseData.createSuccess(permissionInfoDtos);</span>
+  }
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�뿭�븷�뿉 �뵲瑜� 沅뚰븳 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/permission/list-by-role&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; selectPermissionByByRoleWithOwn(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;String&gt; requestParameterDto) {
+
+<span class="nc" id="L90">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L91">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+
+<span class="nc" id="L94">    Set&lt;Permission&gt; permissions = permissionService.selectPermissionByRoleWithOwn(lUserId,</span>
+<span class="nc" id="L95">        lOrganizationId, requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L97">    List&lt;PermissionInfoDto&gt; permissionInfoDtos = permissions.stream().map(p -&gt; {</span>
+<span class="nc" id="L98">      PermissionInfoDto permissionInfoDto = new PermissionInfoDto();</span>
+<span class="nc" id="L99">      return permissionInfoDto.toDto(p);</span>
+<span class="nc" id="L100">    }).toList();</span>
+<span class="nc" id="L101">    return ApiResponseData.createSuccess(permissionInfoDtos);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�쟻�슜�븷 �닔 �엳�뒗 紐⑤뱺 沅뚰븳 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/permission/list-all-own-filter&quot;)
+  public ApiResponseData&lt;Object&gt; selectPermissionAll(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody GridFiltersPageableDto gridFiltersPageableDto) {
+
+<span class="nc" id="L114">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L115">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L117">    List&lt;Criteria&gt; criterias = gridFiltersPageableDto.getGridFilters().stream().map(i -&gt; {</span>
+<span class="nc" id="L118">      return CriteriaMakeHelper.INSTANCE.get(i.getField(), i.getOperator(), i.getValues());</span>
+<span class="nc" id="L119">    }).toList();</span>
+
+
+<span class="nc" id="L122">    Page&lt;Permission&gt; items = permissionService.selectPermissionAllWithOwn(lUserId, lOrganizationId,</span>
+<span class="nc" id="L123">        criterias, gridFiltersPageableDto.toPageable());</span>
+
+
+<span class="nc" id="L126">    long rowNumIndex = items.getPageable().getOffset();</span>
+<span class="nc" id="L127">    AtomicInteger index = new AtomicInteger((int) rowNumIndex);</span>
+<span class="nc" id="L128">    Page&lt;PermissionInfoDto&gt; dtoPage = items.map(u -&gt; {</span>
+<span class="nc" id="L129">      PermissionInfoDto dto = new PermissionInfoDto();</span>
+<span class="nc" id="L130">      dto.setIndex(index.incrementAndGet());</span>
+<span class="nc" id="L131">      return dto.toDto(u);</span>
+    });
+
+<span class="nc" id="L134">    return ApiResponseData.createSuccess(dtoPage);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

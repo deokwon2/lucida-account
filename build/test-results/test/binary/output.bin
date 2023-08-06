@@ -1,0 +1,2 @@
+æUserInfoDto(index=0, id=null, loginId=A, name=A, email=null, phone=null, needChangePassword=null, locked=null, description=null, locale=null, ctime=null, mtime=null, dtime=null, lastLoginTime=null, roles=[], groups=[], own=null)
+éUserInfoDto(index=0, id=null, loginId=B, name=null, email=null, phone=null, needChangePassword=null, locked=null, description=null, locale=null, ctime=null, mtime=null, dtime=null, lastLoginTime=null, roles=[], groups=[], own=null)

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.nkia.lucida.SimpleTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2023-08-06T06:50:04" hostname="DESKTOP-8D8UREV" time="0.127">
+  <properties/>
+  <testcase name="myTest()" classname="com.nkia.lucida.SimpleTest" time="0.127"/>
+  <system-out><![CDATA[UserInfoDto(index=0, id=null, loginId=A, name=A, email=null, phone=null, needChangePassword=null, locked=null, description=null, locale=null, ctime=null, mtime=null, dtime=null, lastLoginTime=null, roles=[], groups=[], own=null)
+UserInfoDto(index=0, id=null, loginId=B, name=null, email=null, phone=null, needChangePassword=null, locked=null, description=null, locale=null, ctime=null, mtime=null, dtime=null, lastLoginTime=null, roles=[], groups=[], own=null)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

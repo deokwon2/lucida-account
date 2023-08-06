@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GroupManagementController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.controller</a> &gt; <span class="el_source">GroupManagementController.java</span></div><h1>GroupManagementController.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.controller;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.data.domain.Page;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.nkia.lucida.account.dto.GroupInfoDto;
+import com.nkia.lucida.account.dto.GroupSaveDto;
+import com.nkia.lucida.account.dto.RequestParameterDto;
+import com.nkia.lucida.account.entity.Group;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.account.entity.User;
+import com.nkia.lucida.account.service.GroupManagementService;
+import com.nkia.lucida.account.service.OrganizationManagementService;
+import com.nkia.lucida.account.service.RoleManagementService;
+import com.nkia.lucida.account.service.UserManagementService;
+import com.nkia.lucida.common.auth.JwtTokenService;
+import com.nkia.lucida.common.dto.ApiResponseData;
+import com.nkia.lucida.common.mongodb.CriteriaMakeHelper;
+import com.nkia.lucida.common.mongodb.GridFiltersPageableDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@RestController
+@RequestMapping(&quot;/api/account&quot;)
+@Tag(name = &quot;6. Group&quot;, description = &quot;&quot;)
+public class GroupManagementController {
+
+
+  private final JwtTokenService jwtTokenService;
+  private final UserManagementService userManagementService;
+  private final GroupManagementService groupManagementService;
+  private final RoleManagementService roleManagementService;
+
+  public GroupManagementController(JwtTokenService jwtTokenService,
+      OrganizationManagementService organizationManagementService,
+      UserManagementService userManagementService, GroupManagementService groupManagementService,
+<span class="nc" id="L47">      RoleManagementService roleManagementService) {</span>
+<span class="nc" id="L48">    this.jwtTokenService = jwtTokenService;</span>
+<span class="nc" id="L49">    this.userManagementService = userManagementService;</span>
+<span class="nc" id="L50">    this.groupManagementService = groupManagementService;</span>
+<span class="nc" id="L51">    this.roleManagementService = roleManagementService;</span>
+<span class="nc" id="L52">  }</span>
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;洹몃９�쓣 �깮�꽦�븳�떎. (admin 怨꾩젙�� �옄�룞�쑝濡� �룷�븿�릺�뼱 �깮�꽦)&quot;)
+  @PostMapping(path = &quot;/group/insert&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; insertGroup(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody GroupSaveDto groupSaveDto) {
+
+<span class="nc" id="L65">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L66">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L68">    groupSaveDto.setId(null);</span>
+<span class="nc" id="L69">    Group group = groupManagementService.insertGroup(lUserId, lOrganizationId,</span>
+<span class="nc" id="L70">        groupSaveDto.toEntity(), groupSaveDto.getUserIds(), groupSaveDto.getRoleIds());</span>
+
+<span class="nc" id="L72">    return ApiResponseData.createSuccess(new GroupInfoDto(group));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;洹몃９�쓽 �젙蹂대�� 蹂�寃쏀븳�떎.&quot;)
+  @PostMapping(path = &quot;/group/update&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; updateGroup(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody GroupSaveDto groupSaveDto) {
+
+<span class="nc" id="L85">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L86">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L88">    Group group = groupManagementService.updateGroup(lUserId, lOrganizationId,</span>
+<span class="nc" id="L89">        groupSaveDto.toEntity(), groupSaveDto.getUserIds(), groupSaveDto.getRoleIds());</span>
+
+<span class="nc" id="L91">    return ApiResponseData.createSuccess(new GroupInfoDto(group));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;洹몃９�쓣 �궘�젣�븳�떎.&quot;)
+  @PostMapping(path = &quot;/group/delete&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; deleteGroup(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;List&lt;String&gt;&gt; requestParameterDto) {
+
+<span class="nc" id="L104">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L105">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L107">    groupManagementService.deleteGroup(lUserId, lOrganizationId, false,</span>
+<span class="nc" id="L108">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L110">    return ApiResponseData.createSuccess(requestParameterDto.getParameter());</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;洹몃９�쓽 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/group/list&quot;)
+  public ApiResponseData&lt;Object&gt; selectGroupByConditions(@Parameter(hidden = true) @RequestHeader(
+      value = HttpHeaders.AUTHORIZATION) String headerAuthorization) {
+
+<span class="nc" id="L120">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L121">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L123">    List&lt;Group&gt; groups =</span>
+<span class="nc" id="L124">        groupManagementService.selectGroupByConditions(lUserId, lOrganizationId, null);</span>
+
+<span class="nc" id="L126">    List&lt;GroupInfoDto&gt; groupInfoDtos = groups.stream().map(o -&gt; {</span>
+
+<span class="nc" id="L128">      List&lt;User&gt; users =</span>
+<span class="nc" id="L129">          userManagementService.selectUserByGroup(lUserId, lOrganizationId, o.getId());</span>
+
+<span class="nc" id="L131">      return new GroupInfoDto(o, users);</span>
+<span class="nc" id="L132">    }).toList();</span>
+
+<span class="nc" id="L134">    return ApiResponseData.createSuccess(groupInfoDtos);</span>
+  }
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)})
+  @PostMapping(path = &quot;/group/list-all-own&quot;)
+  public ApiResponseData&lt;Object&gt; selectGroupForSimple(@Parameter(hidden = true) @RequestHeader(
+      value = HttpHeaders.AUTHORIZATION) String headerAuthorization) {
+
+<span class="nc" id="L143">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L144">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L146">    List&lt;Group&gt; groups = groupManagementService.selectGroupAllWithOwn(lUserId, lOrganizationId);</span>
+
+<span class="nc" id="L148">    List&lt;GroupInfoDto&gt; groupInfoDtos = groups.stream().map(o -&gt; {</span>
+<span class="nc" id="L149">      return new GroupInfoDto(o);</span>
+<span class="nc" id="L150">    }).toList();</span>
+
+<span class="nc" id="L152">    return ApiResponseData.createSuccess(groupInfoDtos);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�꽑�깮�븳 洹몃９�쓽 �긽�꽭 �젙蹂� 諛� �궗�슜�옄 紐⑸줉�쓣 議고쉶 �븳�떎. (�벑濡앸맂 �궗�슜�옄�뒗 own=true)&quot;)
+  @PostMapping(path = &quot;/group/detail&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; selectGroupById(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;String&gt; requestParameterDto) {
+
+<span class="nc" id="L166">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L167">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L169">    Group group = groupManagementService.selectGroupById(lUserId, lOrganizationId,</span>
+<span class="nc" id="L170">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L172">    List&lt;User&gt; users = userManagementService.selectUserByGroupWithOwn(lUserId, lOrganizationId,</span>
+<span class="nc" id="L173">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L175">    List&lt;Role&gt; roles =</span>
+<span class="nc" id="L176">        roleManagementService.selectRoleByGroupWithOwn(lUserId, lOrganizationId, group);</span>
+
+<span class="nc" id="L178">    return ApiResponseData.createSuccess(new GroupInfoDto(group, users, roles, true));</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)},
+      summary = &quot;�룞�씪�븳 洹몃９�쓽 �씠由꾩씠 議댁옱�븯�뒗 吏� �솗�씤. (議댁옱=true)&quot;)
+  @PostMapping(path = &quot;/group/check-duplicate-name&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; checkDuplicateName(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody RequestParameterDto&lt;String&gt; requestParameterDto) {
+
+<span class="nc" id="L192">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L193">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L195">    Boolean duplicate = groupManagementService.checkDuplicateName(lUserId, lOrganizationId,</span>
+<span class="nc" id="L196">        requestParameterDto.getParameter());</span>
+
+<span class="nc" id="L198">    return ApiResponseData.createSuccess(duplicate);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)}, summary = &quot;洹몃９�쓽 紐⑸줉�쓣 議고쉶�븳�떎.&quot;)
+  @PostMapping(path = &quot;/group/list-page-filter&quot;)
+  public ApiResponseData&lt;Object&gt; selectGroupByConditions(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody GridFiltersPageableDto gridFiltersPageableDto) {
+
+<span class="nc" id="L210">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L211">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+
+<span class="nc" id="L214">    List&lt;Criteria&gt; criterias = gridFiltersPageableDto.getGridFilters().stream().map(i -&gt; {</span>
+<span class="nc" id="L215">      return CriteriaMakeHelper.INSTANCE.get(i.getField(), i.getOperator(), i.getValues());</span>
+<span class="nc" id="L216">    }).toList();</span>
+
+
+<span class="nc" id="L219">    Page&lt;Group&gt; items = groupManagementService.selectGroupByConditions(lUserId, lOrganizationId,</span>
+<span class="nc" id="L220">        criterias, gridFiltersPageableDto.toPageable());</span>
+
+<span class="nc" id="L222">    long rowNumIndex = items.getPageable().getOffset();</span>
+<span class="nc" id="L223">    AtomicInteger index = new AtomicInteger((int) rowNumIndex);</span>
+<span class="nc" id="L224">    Page&lt;GroupInfoDto&gt; pageItems = items.map(u -&gt; {</span>
+<span class="nc" id="L225">      GroupInfoDto groupInfoDto = new GroupInfoDto(u);</span>
+<span class="nc" id="L226">      groupInfoDto.setIndex(index.incrementAndGet());</span>
+<span class="nc" id="L227">      return groupInfoDto;</span>
+    });
+<span class="nc" id="L229">    return ApiResponseData.createSuccess(pageItems);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)})
+  @PostMapping(path = &quot;/group/list-all-own-filter&quot;)
+  public ApiResponseData&lt;Object&gt; selectGroupForSimple(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody GridFiltersPageableDto gridFiltersPageableDto) {
+
+<span class="nc" id="L241">    String lUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L242">    String lOrganizationId = jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+
+<span class="nc" id="L245">    List&lt;Criteria&gt; criterias = gridFiltersPageableDto.getGridFilters().stream().map(i -&gt; {</span>
+<span class="nc" id="L246">      return CriteriaMakeHelper.INSTANCE.get(i.getField(), i.getOperator(), i.getValues());</span>
+<span class="nc" id="L247">    }).toList();</span>
+
+
+<span class="nc" id="L250">    Page&lt;Group&gt; items = groupManagementService.selectGroupAllWithOwn(lUserId, lOrganizationId,</span>
+<span class="nc" id="L251">        criterias, gridFiltersPageableDto.toPageable());</span>
+
+<span class="nc" id="L253">    long rowNumIndex = items.getPageable().getOffset();</span>
+<span class="nc" id="L254">    AtomicInteger index = new AtomicInteger((int) rowNumIndex);</span>
+<span class="nc" id="L255">    Page&lt;GroupInfoDto&gt; pageItems = items.map(u -&gt; {</span>
+<span class="nc" id="L256">      GroupInfoDto groupInfoDto = new GroupInfoDto(u);</span>
+<span class="nc" id="L257">      groupInfoDto.setIndex(index.incrementAndGet());</span>
+<span class="nc" id="L258">      return groupInfoDto;</span>
+    });
+<span class="nc" id="L260">    return ApiResponseData.createSuccess(pageItems);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

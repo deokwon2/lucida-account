@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.repository</a> &gt; <span class="el_source">UserRepositoryImpl.java</span></div><h1>UserRepositoryImpl.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.repository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
+import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
+import org.springframework.data.mongodb.core.aggregation.Fields;
+import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.support.PageableExecutionUtils;
+import org.springframework.stereotype.Repository;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.account.entity.User;
+import com.nkia.lucida.common.mongodb.GridPaginationHelper;
+import com.nkia.lucida.common.mongodb.TenantMongoDBConstants;
+
+
+@Repository
+public class UserRepositoryImpl implements UserRepositoryIf {
+
+
+  private final MongoTemplate mongoTemplateIsolation;
+  private final MongoTemplate mongoTemplateShared;
+
+
+  public UserRepositoryImpl(
+      @Qualifier(TenantMongoDBConstants.MONGODB_TEMPLATE_ISOLATION) MongoTemplate mongoTemplateIsolation,
+<span class="nc" id="L37">      @Qualifier(TenantMongoDBConstants.MONGODB_TEMPLATE_SHARED) MongoTemplate mongoTemplateShared) {</span>
+<span class="nc" id="L38">    this.mongoTemplateIsolation = mongoTemplateIsolation;</span>
+<span class="nc" id="L39">    this.mongoTemplateShared = mongoTemplateShared;</span>
+<span class="nc" id="L40">  }</span>
+
+
+
+  @Override
+  public Page&lt;User&gt; selectByConditions(String requestUserId, String requestOrganizationId,
+      Boolean includeOrganization, String organizationId, String loginId, String name, String email,
+      String phone, Boolean locked, Pageable pageable) {
+
+<span class="nc" id="L49">    List&lt;Criteria&gt; criterias = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L50">    criterias.add(Criteria.where(&quot;dtime&quot;).isNull());</span>
+<span class="nc" id="L51">    criterias.addAll(createConditions(requestUserId, requestOrganizationId, includeOrganization,</span>
+        organizationId, loginId, name, email, phone, locked));
+
+<span class="nc" id="L54">    Query query = new Query().with(pageable);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    if (!criterias.isEmpty()) {</span>
+<span class="nc" id="L56">      query.addCriteria(Criteria.where(&quot;&quot;).andOperator(criterias));</span>
+    }
+
+<span class="nc" id="L59">    List&lt;User&gt; users = mongoTemplateShared.find(query, User.class);</span>
+<span class="nc" id="L60">    Page&lt;User&gt; usersPage = PageableExecutionUtils.getPage(users, pageable,</span>
+<span class="nc" id="L61">        () -&gt; mongoTemplateShared.count(query.skip(-1).limit(-1), User.class));</span>
+<span class="nc" id="L62">    return usersPage;</span>
+
+  }
+
+
+  @Override
+  public List&lt;User&gt; selectByConditions(String requestUserId, String requestOrganizationId,
+      Boolean includeOrganization, String organizationId, String loginId, String name, String email,
+      String phone, Boolean locked) {
+
+<span class="nc" id="L72">    List&lt;Criteria&gt; criterias = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L73">    criterias.add(Criteria.where(&quot;dtime&quot;).isNull());</span>
+<span class="nc" id="L74">    criterias.addAll(createConditions(requestUserId, requestOrganizationId, includeOrganization,</span>
+        organizationId, loginId, name, email, phone, locked));
+
+<span class="nc" id="L77">    Query query = new Query();</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">    if (!criterias.isEmpty()) {</span>
+<span class="nc" id="L79">      query.addCriteria(Criteria.where(&quot;&quot;).andOperator(criterias));</span>
+    }
+<span class="nc" id="L81">    return mongoTemplateShared.find(query, User.class);</span>
+  }
+
+
+
+  private List&lt;Criteria&gt; createConditions(String requestUserId, String requestOrganizationId,
+      Boolean includeOrganization, String organizationId, String loginId, String name, String email,
+      String phone, Boolean locked) {
+
+<span class="nc" id="L90">    List&lt;Criteria&gt; criterias = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">    if (!includeOrganization) {</span>
+<span class="nc" id="L92">      criterias.add(Criteria.where(&quot;organizations.id&quot;).ne(organizationId));</span>
+    } else {
+<span class="nc" id="L94">      criterias.add(Criteria.where(&quot;organizations.id&quot;).is(organizationId));</span>
+    }
+
+<span class="nc bnc" id="L97" title="All 4 branches missed.">    if (loginId != null &amp;&amp; !loginId.isEmpty()) {</span>
+<span class="nc" id="L98">      criterias.add(Criteria.where(&quot;loginId&quot;).regex(loginId, &quot;i&quot;));</span>
+    }
+<span class="nc bnc" id="L100" title="All 4 branches missed.">    if (name != null &amp;&amp; !name.isEmpty()) {</span>
+<span class="nc" id="L101">      criterias.add(Criteria.where(&quot;name&quot;).regex(name, &quot;i&quot;));</span>
+    }
+<span class="nc bnc" id="L103" title="All 4 branches missed.">    if (email != null &amp;&amp; !email.isEmpty()) {</span>
+<span class="nc" id="L104">      criterias.add(Criteria.where(&quot;email&quot;).regex(email, &quot;i&quot;));</span>
+    }
+<span class="nc bnc" id="L106" title="All 4 branches missed.">    if (phone != null &amp;&amp; !phone.isEmpty()) {</span>
+<span class="nc" id="L107">      criterias.add(Criteria.where(&quot;phone&quot;).regex(phone, &quot;i&quot;));</span>
+    }
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    if (locked != null) {</span>
+<span class="nc" id="L110">      criterias.add(Criteria.where(&quot;locked&quot;).is(locked));</span>
+    }
+<span class="nc" id="L112">    return criterias;</span>
+  }
+
+
+  @Override
+  public List&lt;User&gt; selectByRole_id(String requestUserId, String requestOrganizationId,
+      String roleId) {
+
+<span class="nc" id="L120">    Query roleQuery = new Query();</span>
+<span class="nc" id="L121">    roleQuery.addCriteria(Criteria.where(&quot;id&quot;).is(roleId));</span>
+<span class="nc" id="L122">    List&lt;Role&gt; roles = mongoTemplateIsolation.find(roleQuery, Role.class);</span>
+
+<span class="nc bnc" id="L124" title="All 2 branches missed.">    if (roles == null) {</span>
+<span class="nc" id="L125">      return new ArrayList&lt;&gt;();</span>
+    }
+
+<span class="nc" id="L128">    List&lt;String&gt; roleUsers = roles.stream().map(r -&gt; {</span>
+
+<span class="nc" id="L130">      return r.getUsers().stream().map(u -&gt; u.getId()).collect(Collectors.toList());</span>
+
+<span class="nc" id="L132">    }).flatMap(u -&gt; u.stream()).collect(Collectors.toList());</span>
+
+<span class="nc" id="L134">    Query userQuery = new Query();</span>
+<span class="nc" id="L135">    userQuery.addCriteria(Criteria.where(&quot;id&quot;).in(roleUsers));</span>
+
+
+
+<span class="nc" id="L139">    return mongoTemplateShared.find(userQuery, User.class);</span>
+
+  }
+
+
+  @Override
+  public List&lt;User&gt; selectByRole_name(String requestUserId, String requestOrganizationId,
+      String name) {
+
+<span class="nc" id="L148">    Query roleQuery = new Query();</span>
+<span class="nc" id="L149">    roleQuery.addCriteria(Criteria.where(&quot;name&quot;).is(name));</span>
+<span class="nc" id="L150">    List&lt;Role&gt; roles = mongoTemplateIsolation.find(roleQuery, Role.class);</span>
+
+<span class="nc bnc" id="L152" title="All 2 branches missed.">    if (roles == null) {</span>
+<span class="nc" id="L153">      return new ArrayList&lt;&gt;();</span>
+    }
+
+<span class="nc" id="L156">    List&lt;String&gt; roleUsers = roles.stream().map(r -&gt; {</span>
+
+<span class="nc" id="L158">      return r.getUsers().stream().map(u -&gt; u.getId()).collect(Collectors.toList());</span>
+
+<span class="nc" id="L160">    }).flatMap(u -&gt; u.stream()).collect(Collectors.toList());</span>
+
+<span class="nc" id="L162">    Query userQuery = new Query();</span>
+<span class="nc" id="L163">    userQuery.addCriteria(Criteria.where(&quot;id&quot;).in(roleUsers));</span>
+<span class="nc" id="L164">    return mongoTemplateShared.find(userQuery, User.class);</span>
+
+  }
+
+
+
+  @Override
+  public Page&lt;User&gt; selectByConditions(String requestUserId, String requestOrganizationId,
+      Boolean includeOrganization, String organizationId, List&lt;Criteria&gt; criterias,
+      Pageable pageable) {
+
+<span class="nc" id="L175">    List&lt;Criteria&gt; criteriaItems = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L176">    criteriaItems.addAll(criterias);</span>
+<span class="nc" id="L177">    criteriaItems.add(Criteria.where(&quot;dtime&quot;).isNull());</span>
+
+<span class="nc bnc" id="L179" title="All 2 branches missed.">    if (!includeOrganization) {</span>
+<span class="nc" id="L180">      criteriaItems.add(Criteria.where(&quot;organizations.id&quot;).ne(organizationId));</span>
+    } else {
+<span class="nc" id="L182">      criteriaItems.add(Criteria.where(&quot;organizations.id&quot;).is(organizationId));</span>
+    }
+
+
+
+<span class="nc" id="L187">    Query query = new Query().with(pageable);</span>
+<span class="nc" id="L188">    query.addCriteria(Criteria.where(&quot;&quot;).andOperator(criteriaItems));</span>
+
+<span class="nc" id="L190">    List&lt;User&gt; users = mongoTemplateShared.find(query, User.class);</span>
+<span class="nc" id="L191">    Page&lt;User&gt; usersPage = PageableExecutionUtils.getPage(users, pageable,</span>
+<span class="nc" id="L192">        () -&gt; mongoTemplateShared.count(query.skip(-1).limit(-1), User.class));</span>
+
+<span class="nc" id="L194">    return usersPage;</span>
+  }
+
+
+
+  @Override
+  public Page&lt;User&gt; selectUserByOrganizationWithOwn(String lUserId, String lOrganizationId,
+      String organizationId, List&lt;Criteria&gt; criterias, Pageable pageable) {
+
+<span class="nc" id="L203">    List&lt;AggregationOperation&gt; aOperations = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L205">    Fields fields = Fields.fields(&quot;id&quot;, &quot;loginId&quot;, &quot;name&quot;, &quot;own&quot;);</span>
+
+<span class="nc" id="L207">    ProjectionOperation po = Aggregation.project().andInclude(fields)</span>
+<span class="nc" id="L208">        .and(ConditionalOperators.when(</span>
+<span class="nc" id="L209">            ArrayOperators.arrayOf(&quot;organizations._id&quot;).containsValue(new ObjectId(organizationId)))</span>
+<span class="nc" id="L210">            .then(true).otherwise(false))</span>
+<span class="nc" id="L211">        .as(&quot;own&quot;);</span>
+
+<span class="nc" id="L213">    aOperations.add(po);</span>
+
+<span class="nc" id="L215">    return GridPaginationHelper.INSTANCE.pageAggregation(mongoTemplateShared, pageable, aOperations,</span>
+        &quot;user&quot;, User.class);
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthenticationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.controller</a> &gt; <span class="el_source">AuthenticationController.java</span></div><h1>AuthenticationController.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.controller;
+
+import java.util.List;
+import java.util.Map;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.nkia.lucida.account.dto.LoginDto;
+import com.nkia.lucida.account.dto.UserInfoDto;
+import com.nkia.lucida.account.entity.User;
+import com.nkia.lucida.account.service.AuthenticationService;
+import com.nkia.lucida.account.service.RoleManagementService;
+import com.nkia.lucida.account.service.UserManagementService;
+import com.nkia.lucida.common.auth.AuthToken;
+import com.nkia.lucida.common.auth.JwtTokenService;
+import com.nkia.lucida.common.dto.ApiResponseData;
+import com.nkia.lucida.common.mongodb.TenantContextHolder;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+
+@RestController
+@RequestMapping(&quot;/api&quot;)
+@Tag(name = &quot;1. Authentication&quot;, description = &quot;&quot;)
+public class AuthenticationController {
+
+
+  private final AuthenticationService authenticationService;
+  private final JwtTokenService jwtTokenService;
+  private final UserManagementService userManagementService;
+  private final RoleManagementService roleManagementService;
+
+
+
+  public AuthenticationController(AuthenticationService authenticationService,
+      JwtTokenService jwtTokenService, UserManagementService userManagementService,
+<span class="nc" id="L46">      RoleManagementService roleManagementService) {</span>
+<span class="nc" id="L47">    this.authenticationService = authenticationService;</span>
+<span class="nc" id="L48">    this.jwtTokenService = jwtTokenService;</span>
+<span class="nc" id="L49">    this.userManagementService = userManagementService;</span>
+<span class="nc" id="L50">    this.roleManagementService = roleManagementService;</span>
+<span class="nc" id="L51">  }</span>
+
+
+
+  @Operation(summary = &quot;login based on id and password only&quot;,
+      description = &quot;Set Organization ID to null.&quot;)
+  @PostMapping(path = &quot;/account/pre-login&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;List&lt;Map&lt;String, String&gt;&gt;&gt; preLogIn(@RequestBody LoginDto logInDto) {
+<span class="nc" id="L60">    List&lt;Map&lt;String, String&gt;&gt; response =</span>
+<span class="nc" id="L61">        authenticationService.login(logInDto.getLoginId(), logInDto.getPassword());</span>
+<span class="nc" id="L62">    return ApiResponseData.createSuccess(response);</span>
+  }
+
+
+
+  @Operation(summary = &quot;login based on id, password, organizationId&quot;, description = &quot;&quot;)
+  @PostMapping(path = &quot;/account/login&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;AuthToken&gt; logIn(@RequestBody LoginDto logInDto) {
+<span class="nc" id="L71">    AuthToken response = authenticationService.login(logInDto.getLoginId(), logInDto.getPassword(),</span>
+<span class="nc" id="L72">        logInDto.getOrganizationId());</span>
+<span class="nc" id="L73">    return ApiResponseData.createSuccess(response);</span>
+  }
+
+
+
+  @Operation(summary = &quot;JWT瑜� 媛깆떊�븷 �븣 �궗�슜�릺�뒗 API. 諛섎뱶�떆 refresh_token�쓣 �궗�슜�빐�꽌 �슂泥��빐�빞 �븳�떎.&quot;, description = &quot;&quot;,
+      security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)})
+  @GetMapping(value = &quot;/account/jwt/refresh&quot;)
+  public ResponseEntity&lt;Object&gt; refreshJWT(@Parameter(hidden = true) @RequestHeader(
+      value = HttpHeaders.AUTHORIZATION) String headerAuthorization) {
+
+<span class="nc" id="L84">    String requestUserId = jwtTokenService.getUserIdFromBearerToken(headerAuthorization);</span>
+<span class="nc" id="L85">    String requestOrganizationId =</span>
+<span class="nc" id="L86">        jwtTokenService.getOrganizationIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L88">    User user =</span>
+<span class="nc" id="L89">        userManagementService.selectUserById(requestUserId, requestOrganizationId, requestUserId);</span>
+<span class="nc" id="L90">    UserInfoDto userInfoDto = new UserInfoDto(user);</span>
+
+<span class="nc" id="L92">    TenantContextHolder.INSTANCE.setTenantId(requestOrganizationId);</span>
+
+<span class="nc" id="L94">    String refreshedToken = jwtTokenService.createRefreshJwtToken(headerAuthorization,</span>
+<span class="nc" id="L95">        userInfoDto.getId(), userInfoDto.getLoginId(), requestOrganizationId,</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        requestOrganizationId == null ? null</span>
+<span class="nc" id="L97">            : roleManagementService.selectRoleByUserIncludeIdFileds(requestUserId),</span>
+<span class="nc" id="L98">        userInfoDto.getLocale());</span>
+
+<span class="nc" id="L100">    TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L101">    return ResponseEntity.status(HttpStatus.OK).body(refreshedToken);</span>
+  }
+
+
+  @Operation(summary = &quot;Istio�뿉�꽌 JWKS �젙蹂대�� 諛쏆븘�삱 �븣 �슂泥��븯�뒗 API.&quot;, description = &quot;&quot;)
+  // @GetMapping(&quot;/jwt/.well-known/jwks.json&quot;)
+  @GetMapping(&quot;/account/jwt/.well-known/jwks.json&quot;)
+  public Map&lt;String, Object&gt; keys() {
+<span class="nc" id="L109">    return jwtTokenService.getJwkSet();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GridColumnsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.controller</a> &gt; <span class="el_source">GridColumnsController.java</span></div><h1>GridColumnsController.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.controller;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import com.nkia.lucida.account.dto.GroupInfoDto;
+import com.nkia.lucida.account.dto.OrganizationInfoDto;
+import com.nkia.lucida.account.dto.RoleInfoDto;
+import com.nkia.lucida.account.dto.UserInfoDto;
+import com.nkia.lucida.common.auth.JwtTokenService;
+import com.nkia.lucida.common.dto.ApiResponseData;
+import com.nkia.lucida.common.dto.GridColumnDataDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@RestController
+@RequestMapping(&quot;/api&quot;)
+@Tag(name = &quot;0. GridColumns Response&quot;, description = &quot;&quot;)
+public class GridColumnsController {
+
+  private final JwtTokenService jwtTokenService;
+
+<span class="nc" id="L30">  public GridColumnsController(JwtTokenService jwtTokenService) {</span>
+<span class="nc" id="L31">    this.jwtTokenService = jwtTokenService;</span>
+<span class="nc" id="L32">  }</span>
+
+
+  @PostMapping(path = &quot;/account/test/gridcolumns&quot;)
+  public ApiResponseData&lt;Object&gt; testGgetGridcolumns(@RequestParam UrlList urlList) {
+
+<span class="nc" id="L38">    String grid = urlList.name();</span>
+<span class="nc" id="L39">    grid = grid.replaceAll(&quot;\\$&quot;, &quot;\\/&quot;).replaceAll(&quot;_&quot;, &quot;-&quot;);</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">    grid = grid.indexOf(&quot;/&quot;) &gt; 0 ? &quot;/&quot; + grid : grid;</span>
+
+<span class="nc" id="L42">    GridColumnDataDto response = null;</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">    response = response != null ? response : startWith_user(grid);</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">    response = response != null ? response : startWith_group(grid);</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    response = response != null ? response : startWith_organization(grid);</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">    response = response != null ? response : startWith_role(grid);</span>
+
+<span class="nc" id="L48">    return ApiResponseData.createSuccess(response);</span>
+  }
+
+
+
+  @Operation(security = {@SecurityRequirement(name = &quot;bearerAuth&quot;)})
+  @PostMapping(path = &quot;/account/gridcolumns&quot;, consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ApiResponseData&lt;Object&gt; getGridcolumns(
+      @Parameter(hidden = true) @RequestHeader(
+          value = HttpHeaders.AUTHORIZATION) String headerAuthorization,
+      @RequestBody GridColumnDataDto gridColumnDataDto) {
+
+<span class="nc" id="L61">    jwtTokenService.getLoginIdFromBearerToken(headerAuthorization);</span>
+
+<span class="nc" id="L63">    String grid = gridColumnDataDto.getGrid().toLowerCase();</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">    grid = grid.indexOf(&quot;/&quot;) &gt; 0 ? &quot;/&quot; + grid : grid;</span>
+
+<span class="nc" id="L66">    GridColumnDataDto response = null;</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">    response = response != null ? response : startWith_user(grid);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">    response = response != null ? response : startWith_group(grid);</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">    response = response != null ? response : startWith_organization(grid);</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">    response = response != null ? response : startWith_role(grid);</span>
+
+<span class="nc" id="L72">    return ApiResponseData.createSuccess(response);</span>
+  }
+
+
+
+  private GridColumnDataDto startWith_user(String grid) {
+
+<span class="nc bnc" id="L79" title="All 2 branches missed.">    if (!grid.startsWith(&quot;/user/&quot;)) {</span>
+<span class="nc" id="L80">      return null;</span>
+    }
+
+<span class="nc" id="L83">    GridColumnDataDto response = null;</span>
+<span class="nc bnc" id="L84" title="All 11 branches missed.">    switch (grid) {</span>
+
+      case &quot;/user/list-page&quot;:
+<span class="nc" id="L87">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L88">            .responseClazz(UserInfoDto.class).excludeField(&quot;roles&quot;).excludeField(&quot;groups&quot;)</span>
+<span class="nc" id="L89">            .excludeField(&quot;locale&quot;).excludeField(&quot;dtime&quot;).build();</span>
+<span class="nc" id="L90">        break;</span>
+
+      case &quot;/user/list-by-organization&quot;:
+<span class="nc" id="L93">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L94">            .responseClazz(UserInfoDto.class).build();</span>
+<span class="nc" id="L95">        break;</span>
+
+      case &quot;/user/list-all-own&quot;:
+<span class="nc" id="L98">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L99">            .responseClazz(UserInfoDto.class).build();</span>
+<span class="nc" id="L100">        break;</span>
+
+      case &quot;/user/list-included-in-the-organization&quot;:
+<span class="nc" id="L103">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L104">            .responseClazz(UserInfoDto.class).build();</span>
+<span class="nc" id="L105">        break;</span>
+
+      case &quot;/user/list-not-included-in-the-organization&quot;:
+<span class="nc" id="L108">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L109">            .responseClazz(UserInfoDto.class).build();</span>
+<span class="nc" id="L110">        break;</span>
+
+      case &quot;/user/list-page-filter&quot;:
+<span class="nc" id="L113">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L114">            .responseClazz(UserInfoDto.class).build();</span>
+<span class="nc" id="L115">        break;</span>
+
+      case &quot;/user/list-all-own-filter&quot;:
+<span class="nc" id="L118">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L119">            .responseClazz(UserInfoDto.class).build();</span>
+<span class="nc" id="L120">        break;</span>
+
+      case &quot;/user/list-included-in-the-organization-filter&quot;:
+<span class="nc" id="L123">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L124">            .responseClazz(UserInfoDto.class).build();</span>
+<span class="nc" id="L125">        break;</span>
+
+      case &quot;/user/list-not-included-in-the-organization-filter&quot;:
+<span class="nc" id="L128">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L129">            .responseClazz(UserInfoDto.class).build();</span>
+<span class="nc" id="L130">        break;</span>
+
+      case &quot;/user/list-by-organization-filter&quot;:
+<span class="nc" id="L133">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L134">            .responseClazz(UserInfoDto.class).build();</span>
+        break;
+
+    }
+<span class="nc" id="L138">    return response;</span>
+  }
+
+
+  private GridColumnDataDto startWith_group(String grid) {
+
+<span class="nc bnc" id="L144" title="All 2 branches missed.">    if (!grid.startsWith(&quot;/group/&quot;)) {</span>
+<span class="nc" id="L145">      return null;</span>
+    }
+
+<span class="nc" id="L148">    GridColumnDataDto response = null;</span>
+<span class="nc bnc" id="L149" title="All 5 branches missed.">    switch (grid) {</span>
+
+      case &quot;/group/list&quot;:
+<span class="nc" id="L152">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L153">            .responseClazz(GroupInfoDto.class).build();</span>
+<span class="nc" id="L154">        break;</span>
+
+      case &quot;/group/list-all-own&quot;:
+<span class="nc" id="L157">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L158">            .responseClazz(GroupInfoDto.class).build();</span>
+<span class="nc" id="L159">        break;</span>
+
+      case &quot;/group/list-page-filter&quot;:
+<span class="nc" id="L162">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L163">            .responseClazz(GroupInfoDto.class).build();</span>
+<span class="nc" id="L164">        break;</span>
+
+      case &quot;/group/list-all-own-filter&quot;:
+<span class="nc" id="L167">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L168">            .responseClazz(GroupInfoDto.class).build();</span>
+        break;
+    }
+<span class="nc" id="L171">    return response;</span>
+  }
+
+
+
+  private GridColumnDataDto startWith_organization(String grid) {
+
+<span class="nc bnc" id="L178" title="All 2 branches missed.">    if (!grid.startsWith(&quot;/organization/&quot;)) {</span>
+<span class="nc" id="L179">      return null;</span>
+    }
+
+<span class="nc" id="L182">    GridColumnDataDto response = null;</span>
+<span class="nc bnc" id="L183" title="All 3 branches missed.">    switch (grid) {</span>
+
+      case &quot;/organization/list&quot;:
+<span class="nc" id="L186">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L187">            .responseClazz(OrganizationInfoDto.class).build();</span>
+<span class="nc" id="L188">        break;</span>
+
+      case &quot;/organization/list-page-filter&quot;:
+<span class="nc" id="L191">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L192">            .responseClazz(OrganizationInfoDto.class).build();</span>
+        break;
+    }
+<span class="nc" id="L195">    return response;</span>
+  }
+
+
+  private GridColumnDataDto startWith_role(String grid) {
+
+<span class="nc bnc" id="L201" title="All 2 branches missed.">    if (!grid.startsWith(&quot;/role/&quot;)) {</span>
+<span class="nc" id="L202">      return null;</span>
+    }
+
+<span class="nc" id="L205">    GridColumnDataDto response = null;</span>
+<span class="nc bnc" id="L206" title="All 3 branches missed.">    switch (grid) {</span>
+
+      case &quot;/role/list&quot;:
+<span class="nc" id="L209">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L210">            .responseClazz(RoleInfoDto.class).build();</span>
+<span class="nc" id="L211">        break;</span>
+
+      case &quot;/role/list-page-filter&quot;:
+<span class="nc" id="L214">        response = GridColumnDataDto.builder().domain(&quot;account&quot;).grid(grid)</span>
+<span class="nc" id="L215">            .responseClazz(RoleInfoDto.class).build();</span>
+        break;
+    }
+<span class="nc" id="L218">    return response;</span>
+  }
+
+
+<span class="nc" id="L222">  private enum UrlList {</span>
+
+<span class="nc" id="L224">    $user$list_page,</span>
+
+<span class="nc" id="L226">    $user$list_by_organization,</span>
+
+<span class="nc" id="L228">    $user$list_all_own,</span>
+
+<span class="nc" id="L230">    $user$list_included_in_the_organization,</span>
+
+<span class="nc" id="L232">    $user$list_not_included_in_the_organization,</span>
+
+<span class="nc" id="L234">    $user$list_page_filter,</span>
+
+<span class="nc" id="L236">    $user$list_all_own_filter,</span>
+
+<span class="nc" id="L238">    $user$list_included_in_the_organization_filter,</span>
+
+<span class="nc" id="L240">    $user$list_not_included_in_the_organization_filter,</span>
+
+<span class="nc" id="L242">    $user$list_by_organization_filter,</span>
+
+<span class="nc" id="L244">    $group$list,</span>
+
+<span class="nc" id="L246">    $group$list_all_own,</span>
+
+<span class="nc" id="L248">    $group$list_page_filter,</span>
+
+<span class="nc" id="L250">    $group$list_all_own_filter,</span>
+
+<span class="nc" id="L252">    $organization$list,</span>
+
+<span class="nc" id="L254">    $organization$list_page_filter,</span>
+
+<span class="nc" id="L256">    $role$list,</span>
+
+<span class="nc" id="L258">    $role$list_page_filter;</span>
+  }
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

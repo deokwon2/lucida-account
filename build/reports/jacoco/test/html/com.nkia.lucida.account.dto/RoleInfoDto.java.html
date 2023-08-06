@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoleInfoDto.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.dto</a> &gt; <span class="el_source">RoleInfoDto.java</span></div><h1>RoleInfoDto.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.dto;
+
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.TreeSet;
+import org.springframework.beans.BeanUtils;
+import com.nkia.lucida.account.entity.Group;
+import com.nkia.lucida.account.entity.Permission;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.account.entity.User;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class RoleInfoDto implements Comparable&lt;RoleInfoDto&gt; {
+
+  private long index;
+  private String id;
+  private String name;
+  private String description;
+  private Boolean own;
+
+<span class="nc" id="L24">  private TreeSet&lt;UserInfoDto&gt; users = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L25">  private TreeSet&lt;PermissionInfoDto&gt; permissions = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L26">  private TreeSet&lt;GroupInfoDto&gt; groups = new TreeSet&lt;&gt;();</span>
+
+<span class="nc" id="L28">  private int userAmount = 0;</span>
+<span class="nc" id="L29">  private int permissionAmount = 0;</span>
+<span class="nc" id="L30">  private int groupAmount = 0;</span>
+
+<span class="nc" id="L32">  public RoleInfoDto() {}</span>
+
+<span class="nc" id="L34">  public RoleInfoDto(Role source) {</span>
+<span class="nc" id="L35">    BeanUtils.copyProperties(source, this);</span>
+
+<span class="nc bnc" id="L37" title="All 2 branches missed.">    if (source.getUsers() != null) {</span>
+<span class="nc" id="L38">      this.setUserAmount(source.getUsers().size());</span>
+    }
+
+<span class="nc bnc" id="L41" title="All 2 branches missed.">    if (source.getPermissions() != null) {</span>
+<span class="nc" id="L42">      this.setPermissionAmount(source.getPermissions().size());</span>
+    }
+
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    if (source.getGroups() != null) {</span>
+<span class="nc" id="L46">      this.setGroupAmount(source.getGroups().size());</span>
+    }
+<span class="nc" id="L48">  }</span>
+
+  public RoleInfoDto(Role source, Collection&lt;User&gt; users, Collection&lt;Permission&gt; permissions,
+<span class="nc" id="L51">      Collection&lt;Group&gt; groups) {</span>
+<span class="nc" id="L52">    BeanUtils.copyProperties(source, this);</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">    if (users != null) {</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">      for (User user : users) {</span>
+<span class="nc" id="L55">        UserInfoDto userInfoDto = new UserInfoDto();</span>
+<span class="nc" id="L56">        userInfoDto.toDto(user);</span>
+<span class="nc" id="L57">        this.users.add(userInfoDto);</span>
+<span class="nc" id="L58">      }</span>
+    }
+
+<span class="nc bnc" id="L61" title="All 2 branches missed.">    if (permissions != null) {</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      for (Permission permission : permissions) {</span>
+<span class="nc" id="L63">        PermissionInfoDto permissionInfoDto = new PermissionInfoDto();</span>
+<span class="nc" id="L64">        permissionInfoDto.toDto(permission);</span>
+<span class="nc" id="L65">        this.permissions.add(permissionInfoDto);</span>
+<span class="nc" id="L66">      }</span>
+    }
+
+<span class="nc bnc" id="L69" title="All 2 branches missed.">    if (groups != null) {</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">      for (Group group : groups) {</span>
+<span class="nc" id="L71">        GroupInfoDto groupInfoDto = new GroupInfoDto();</span>
+<span class="nc" id="L72">        groupInfoDto.toDto(group);</span>
+<span class="nc" id="L73">        this.groups.add(groupInfoDto);</span>
+<span class="nc" id="L74">      }</span>
+    }
+<span class="nc" id="L76">  }</span>
+
+
+  public RoleInfoDto toDto(Role source) {
+<span class="nc" id="L80">    BeanUtils.copyProperties(source, this);</span>
+<span class="nc" id="L81">    return this;</span>
+  }
+
+
+  public Role toEntity() {
+<span class="nc" id="L86">    return null;</span>
+  }
+
+
+
+  @SuppressWarnings(&quot;unused&quot;)
+  private int compare(RoleInfoDto o1, RoleInfoDto o2) {
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (o1.getName() == o2.getName()) {</span>
+      // Nulls or exact equality
+<span class="nc" id="L95">      return 0;</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    } else if (o1.getName() == null) {</span>
+      // s1 null and s2 not null, so s1 greater
+<span class="nc" id="L98">      return 1;</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    } else if (o2.getName() == null) {</span>
+      // s2 null and s1 not null, so s1 less
+<span class="nc" id="L101">      return -1;</span>
+    } else {
+<span class="nc" id="L103">      return o2.getName().compareTo(o1.getName());</span>
+    }
+  }
+
+
+  @Override
+  public int compareTo(RoleInfoDto o) {
+    // return Comparator.comparing((RoleInfoDto s) -&gt; s.name).compare(this, o);
+<span class="nc" id="L111">    return Comparator</span>
+<span class="nc" id="L112">        .comparing(RoleInfoDto::getName, Comparator.nullsFirst(Comparator.naturalOrder()))</span>
+<span class="nc" id="L113">        .compare(this, o);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

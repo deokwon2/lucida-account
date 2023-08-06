@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DevelopmentController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.controller</a> &gt; <span class="el_source">DevelopmentController.java</span></div><h1>DevelopmentController.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.controller;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import com.nkia.lucida.account.constants.AccountConstant;
+import com.nkia.lucida.account.dto.RoleInfoDto;
+import com.nkia.lucida.account.dto.UserInfoDto;
+import com.nkia.lucida.account.dto.UserSaveDto;
+import com.nkia.lucida.account.entity.Organization;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.account.entity.User;
+import com.nkia.lucida.account.repository.OrganizationRepository;
+import com.nkia.lucida.account.service.InitializeService;
+import com.nkia.lucida.account.service.OrganizationManagementService;
+import com.nkia.lucida.account.service.RoleManagementService;
+import com.nkia.lucida.account.service.UserManagementService;
+import com.nkia.lucida.common.auth.JwtTokenService;
+import com.nkia.lucida.common.auth.SecurityContext;
+import com.nkia.lucida.common.dto.ApiResponseData;
+import com.nkia.lucida.common.mongodb.TenantContextHolder;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@RestController
+@RequestMapping(&quot;/api/account&quot;)
+@Tag(name = &quot;99. Development&quot;, description = &quot;&quot;)
+public class DevelopmentController {
+
+  private final RoleManagementService roleManagementService;
+  private final UserManagementService userManagementService;
+  private final ApplicationContext applicationContext;
+
+  public DevelopmentController(RoleManagementService roleManagementService,
+      UserManagementService userManagementService, JwtTokenService jwtTokenService,
+<span class="nc" id="L40">      ApplicationContext applicationContext) {</span>
+<span class="nc" id="L41">    this.roleManagementService = roleManagementService;</span>
+<span class="nc" id="L42">    this.userManagementService = userManagementService;</span>
+<span class="nc" id="L43">    this.applicationContext = applicationContext;</span>
+<span class="nc" id="L44">  }</span>
+
+  @GetMapping(path = &quot;/test/1/password/to-base64&quot;)
+  public ApiResponseData&lt;String&gt; tooBase64(@RequestParam String pwd) {
+<span class="nc" id="L48">    return ApiResponseData.createSuccess(SecurityContext.INSTANCE.hashFromUI(pwd));</span>
+  }
+
+
+
+  @PostMapping(path = &quot;/test/2/init-account-data&quot;)
+  public ApiResponseData&lt;Object&gt; methodTest() {
+<span class="nc" id="L55">    applicationContext.getBean(InitializeService.class).initializeAccountData();</span>
+<span class="nc" id="L56">    return ApiResponseData.createSuccess(true);</span>
+  }
+
+  @PostMapping(path = &quot;/test/3/organization/insert&quot;)
+  public ApiResponseData&lt;Object&gt; organizationInsert(
+      @RequestParam(required = true) String organizationName,
+      @RequestParam(required = false) String addOrganizationAdminLoginId,
+      @RequestParam(required = false) String addOrganizationAdminLoginName) {
+
+<span class="nc" id="L65">    TenantContextHolder.INSTANCE.setTenantId(AccountConstant.DATABASE_SHARED);</span>
+
+<span class="nc" id="L67">    applicationContext.getBean(OrganizationManagementService.class).insertOrganization(null, null,</span>
+        null, null);
+
+<span class="nc" id="L70">    TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L71">    return ApiResponseData.createSuccess(true);</span>
+  }
+
+
+  @PostMapping(path = &quot;/test/4/organization/list&quot;)
+  public ApiResponseData&lt;Object&gt; organizationList(
+      @RequestParam(required = true) String organizationId,
+      @RequestParam(required = false) List&lt;String&gt; roleIds) {
+
+<span class="nc" id="L80">    TenantContextHolder.INSTANCE.setTenantId(organizationId);</span>
+<span class="nc" id="L81">    List&lt;Organization&gt; oraOrganizations = applicationContext.getBean(OrganizationRepository.class)</span>
+<span class="nc" id="L82">        .selectByDtimeIsNullIncludeIdFields();</span>
+<span class="nc" id="L83">    TenantContextHolder.INSTANCE.clear();</span>
+<span class="nc" id="L84">    return ApiResponseData.createSuccess(oraOrganizations);</span>
+  }
+
+
+
+  @PostMapping(path = &quot;/test/5/user/insert-bulk&quot;)
+  public ApiResponseData&lt;Object&gt; insertSampeUsers(
+      @RequestParam(required = true) String lOrganizationId,
+      @RequestParam(required = true) String loginIdPrefix,
+      @RequestParam(required = true) String userNamePrefix,
+      @RequestParam(required = true) int createCount,
+      @RequestParam(required = true) List&lt;String&gt; roleIds) {
+
+<span class="nc" id="L97">    TenantContextHolder.INSTANCE.setTenantId(lOrganizationId);</span>
+
+<span class="nc" id="L99">    List&lt;User&gt; users = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    for (int i = 0; i &lt; createCount; i++) {</span>
+<span class="nc" id="L101">      String stringNumber = String.format(&quot;%04d&quot;, i);</span>
+<span class="nc" id="L102">      UserSaveDto user = new UserSaveDto();</span>
+<span class="nc" id="L103">      user.setLoginId(loginIdPrefix + &quot;-&quot; + stringNumber);</span>
+<span class="nc" id="L104">      user.setName(userNamePrefix + &quot;-&quot; + stringNumber);</span>
+<span class="nc" id="L105">      user.setDescription(&quot;My name is &quot; + user.getName() + &quot;(&quot; + user.getLoginId() + &quot;)&quot;);</span>
+<span class="nc" id="L106">      user.setEmail(user.getLoginId() + &quot;@email.co.kr&quot;);</span>
+<span class="nc" id="L107">      user.setPhone(&quot;010-&quot; + stringNumber + &quot;-&quot; + stringNumber);</span>
+<span class="nc" id="L108">      user.setPassword(SecurityContext.INSTANCE.hashFromUI(user.getLoginId()));</span>
+<span class="nc" id="L109">      user.setLocked(false);</span>
+<span class="nc" id="L110">      user.setNeedChangePassword(false);</span>
+<span class="nc" id="L111">      users.add(user.toEntity());</span>
+    }
+
+<span class="nc" id="L114">    userManagementService.insertUser(null, lOrganizationId, users, roleIds);</span>
+<span class="nc" id="L115">    TenantContextHolder.INSTANCE.clear();</span>
+
+<span class="nc" id="L117">    return ApiResponseData.createSuccess(null);</span>
+  }
+
+
+  @PostMapping(path = &quot;/test/6/tenant-check/role&quot;)
+  public ApiResponseData&lt;Object&gt; tenantCheckRole(@RequestParam(required = true) boolean useTenantId,
+      @RequestParam(required = true) String lOrganizationId) {
+<span class="nc bnc" id="L124" title="All 2 branches missed.">    if (useTenantId) {</span>
+<span class="nc" id="L125">      TenantContextHolder.INSTANCE.setTenantId(lOrganizationId);</span>
+    }
+
+<span class="nc" id="L128">    List&lt;Role&gt; items =</span>
+<span class="nc" id="L129">        roleManagementService.selectRoleByConditions(lOrganizationId, lOrganizationId, null);</span>
+
+<span class="nc" id="L131">    List&lt;RoleInfoDto&gt; itemDtos = items.stream().map(o -&gt; {</span>
+<span class="nc" id="L132">      return new RoleInfoDto(o);</span>
+<span class="nc" id="L133">    }).toList();</span>
+
+<span class="nc bnc" id="L135" title="All 2 branches missed.">    if (useTenantId) {</span>
+<span class="nc" id="L136">      TenantContextHolder.INSTANCE.clear();</span>
+    }
+<span class="nc" id="L138">    return ApiResponseData.createSuccess(itemDtos);</span>
+  }
+
+
+
+  @PostMapping(path = &quot;/test/7/tenant-check/user&quot;)
+  public ApiResponseData&lt;Object&gt; tenantCheckUser(@RequestParam(required = true) boolean useTenantId,
+      @RequestParam(required = true) String lOrganizationId) {
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (useTenantId) {</span>
+<span class="nc" id="L147">      TenantContextHolder.INSTANCE.setTenantId(lOrganizationId);</span>
+    }
+
+<span class="nc" id="L150">    List&lt;User&gt; users = userManagementService.selectUserAll(&quot;system&quot;, lOrganizationId);</span>
+<span class="nc" id="L151">    List&lt;UserInfoDto&gt; userInfoDtos = users.stream().map(u -&gt; {</span>
+<span class="nc" id="L152">      return new UserInfoDto(u);</span>
+<span class="nc" id="L153">    }).toList();</span>
+
+<span class="nc bnc" id="L155" title="All 2 branches missed.">    if (useTenantId) {</span>
+<span class="nc" id="L156">      TenantContextHolder.INSTANCE.clear();</span>
+    }
+<span class="nc" id="L158">    return ApiResponseData.createSuccess(userInfoDtos);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

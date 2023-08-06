@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PermissionServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.service</a> &gt; <span class="el_source">PermissionServiceImpl.java</span></div><h1>PermissionServiceImpl.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.service;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.stereotype.Service;
+import com.nkia.lucida.account.entity.Permission;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.account.repository.PermissionRepository;
+import com.nkia.lucida.account.repository.RoleRepository;
+
+@Service
+public class PermissionServiceImpl implements PermissionService {
+
+  private final PermissionRepository permissionRepository;
+  private final RoleRepository roleRepository;
+
+  public PermissionServiceImpl(PermissionRepository permissionRepository,
+<span class="nc" id="L22">      RoleRepository roleRepository) {</span>
+<span class="nc" id="L23">    this.permissionRepository = permissionRepository;</span>
+<span class="nc" id="L24">    this.roleRepository = roleRepository;</span>
+<span class="nc" id="L25">  }</span>
+
+
+  @Override
+  public Set&lt;Permission&gt; selectPermissionAllWithOwn(String lUserId, String lOrganizationId) {
+<span class="nc" id="L30">    List&lt;Permission&gt; permissions = permissionRepository.findAll().stream().map(r -&gt; {</span>
+<span class="nc" id="L31">      r.setOwn(false);</span>
+<span class="nc" id="L32">      return r;</span>
+<span class="nc" id="L33">    }).toList();</span>
+<span class="nc" id="L34">    return new HashSet&lt;&gt;(permissions);</span>
+  }
+
+
+  @Override
+  public Set&lt;Permission&gt; selectPermissionByRoleWithOwn(String lUserId, String lOrganizationId,
+      String roleId) {
+
+<span class="nc" id="L42">    Role role = roleRepository.findRoleById(roleId);</span>
+<span class="nc" id="L43">    Set&lt;Permission&gt; includePermission = role.getPermissions();</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">    includePermission = includePermission == null ? new HashSet&lt;&gt;() : includePermission;</span>
+<span class="nc" id="L45">    Set&lt;Permission&gt; allPermission = new HashSet&lt;&gt;(permissionRepository.findAll());</span>
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">    for (Permission p : allPermission) {</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">      if (includePermission.contains(p)) {</span>
+<span class="nc" id="L49">        p.setOwn(true);</span>
+      } else {
+<span class="nc" id="L51">        p.setOwn(false);</span>
+      }
+<span class="nc" id="L53">    }</span>
+<span class="nc" id="L54">    return allPermission;</span>
+  }
+
+
+
+  @Override
+  public Set&lt;String&gt; selectPermissionByRoleIncludeIdFields(String lUserId, String lOrganizationId,
+      List&lt;String&gt; roleIds) {
+<span class="nc" id="L62">    return permissionRepository.selectByRoleIncludeIdFields(roleIds);</span>
+  }
+
+
+
+  @Override
+  public Page&lt;Permission&gt; selectPermissionAllWithOwn(String lUserId, String lOrganizationId,
+      List&lt;Criteria&gt; criterias, Pageable pageable) {
+
+
+<span class="nc" id="L72">    return this.selectPermissionByConditions(lUserId, lOrganizationId, criterias, pageable)</span>
+<span class="nc" id="L73">        .map(u -&gt; {</span>
+<span class="nc" id="L74">          u.setOwn(false);</span>
+<span class="nc" id="L75">          return u;</span>
+        });
+  }
+
+
+  @Override
+  public Page&lt;Permission&gt; selectPermissionByConditions(String lUserId, String lOrganizationId,
+      List&lt;Criteria&gt; criterias, Pageable pageable) {
+<span class="nc" id="L83">    return permissionRepository.selectByConditions(lUserId, lOrganizationId, criterias, pageable);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

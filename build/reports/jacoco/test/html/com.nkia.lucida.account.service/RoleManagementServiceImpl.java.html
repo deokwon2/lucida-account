@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ko"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoleManagementServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lucida-account</a> &gt; <a href="index.source.html" class="el_package">com.nkia.lucida.account.service</a> &gt; <span class="el_source">RoleManagementServiceImpl.java</span></div><h1>RoleManagementServiceImpl.java</h1><pre class="source lang-java linenums">package com.nkia.lucida.account.service;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
+import com.nkia.lucida.account.constants.AccountConstant;
+import com.nkia.lucida.account.entity.Group;
+import com.nkia.lucida.account.entity.Role;
+import com.nkia.lucida.account.entity.User;
+import com.nkia.lucida.account.kafka.AccountKafkaProducer;
+import com.nkia.lucida.account.repository.GroupRepository;
+import com.nkia.lucida.account.repository.PermissionRepository;
+import com.nkia.lucida.account.repository.RoleRepository;
+import com.nkia.lucida.account.repository.UserRepository;
+import com.nkia.lucida.avro.ActionType;
+import com.nkia.lucida.avro.TargetType;
+import com.nkia.lucida.common.exception.AuthException;
+import com.nkia.lucida.common.exception.GlobalErrorCode;
+
+@Service
+public class RoleManagementServiceImpl implements RoleManagementService {
+
+
+  private final RoleRepository roleRepository;
+  private final UserRepository userRepository;
+  private final PermissionRepository permissionRepository;
+  private final GroupRepository groupRepository;
+  private final AccountKafkaProducer accountKafkaProducer;
+
+  public RoleManagementServiceImpl(RoleRepository roleRepository, UserRepository userRepository,
+      PermissionRepository permissionRepository, GroupRepository groupRepository,
+<span class="nc" id="L39">      AccountKafkaProducer accountKafkaProducer) {</span>
+<span class="nc" id="L40">    this.roleRepository = roleRepository;</span>
+<span class="nc" id="L41">    this.userRepository = userRepository;</span>
+<span class="nc" id="L42">    this.permissionRepository = permissionRepository;</span>
+<span class="nc" id="L43">    this.groupRepository = groupRepository;</span>
+<span class="nc" id="L44">    this.accountKafkaProducer = accountKafkaProducer;</span>
+<span class="nc" id="L45">  }</span>
+
+
+
+  @Override
+  public Role insertRole(String lUserId, String lOrganizationId, Role role, List&lt;String&gt; userIds,
+      List&lt;String&gt; permissionIds, List&lt;String&gt; groupIds) {
+
+<span class="nc" id="L53">    Assert.notNull(role, &quot;Role must not be null.&quot;);</span>
+
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    if (checkDuplicateName(lUserId, lOrganizationId, role.getName())) {</span>
+<span class="nc" id="L56">      throw new AuthException(&quot;Duplicate name. (&quot; + role.getName() + &quot;)&quot;,</span>
+<span class="nc" id="L57">          GlobalErrorCode.CAN_NOT_BE_SAVED, role.getName());</span>
+    }
+
+<span class="nc" id="L60">    long time = Instant.now().getEpochSecond();</span>
+<span class="nc" id="L61">    role.setCtime(time);</span>
+<span class="nc" id="L62">    role.setMtime(time);</span>
+
+<span class="nc" id="L64">    role.excludeUserAll();</span>
+<span class="nc bnc" id="L65" title="All 4 branches missed.">    if (userIds != null &amp;&amp; !userIds.isEmpty()) {</span>
+<span class="nc" id="L66">      role.addUser(userRepository</span>
+<span class="nc" id="L67">          .findUserByLoginIdAndDtimeIsNull(AccountConstant.SYSTEM_ADMIN_USER_LOGINID));</span>
+<span class="nc" id="L68">      role.addUser(</span>
+<span class="nc" id="L69">          userRepository.findByIdInAndOrganizations_idAndDtimeIsNull(userIds, lOrganizationId));</span>
+    }
+
+<span class="nc" id="L72">    role.excludePermissionAll();</span>
+<span class="nc bnc" id="L73" title="All 4 branches missed.">    if (permissionIds != null &amp;&amp; !permissionIds.isEmpty()) {</span>
+<span class="nc" id="L74">      role.addPermission(permissionRepository.findByIdIn(permissionIds));</span>
+    }
+
+<span class="nc" id="L77">    role.excludeGroupAll();</span>
+<span class="nc bnc" id="L78" title="All 4 branches missed.">    if (groupIds != null &amp;&amp; !groupIds.isEmpty()) {</span>
+<span class="nc" id="L79">      role.addGroup(groupRepository.findByIdInAndDtimeIsNull(groupIds));</span>
+    }
+
+<span class="nc" id="L82">    roleRepository.save(role);</span>
+
+    // �뿭�븷 �깮�꽦 topic 諛쒗뻾
+<span class="nc" id="L85">    accountKafkaProducer.send(lUserId, lOrganizationId, TargetType.ROLE, ActionType.INSERT,</span>
+<span class="nc" id="L86">        role.getId());</span>
+
+<span class="nc" id="L88">    return role;</span>
+  }
+
+
+  @Transactional
+  @Override
+  public Role updateRole(String lUserId, String lOrganizationId, Role role, List&lt;String&gt; userIds,
+      List&lt;String&gt; permissionIds, List&lt;String&gt; groupIds) {
+
+<span class="nc" id="L97">    Assert.notNull(role, &quot;Role must not be null.&quot;);</span>
+<span class="nc" id="L98">    Assert.notNull(role.getId(), &quot;Role id must not be null.&quot;);</span>
+
+<span class="nc" id="L100">    Role target = roleRepository.findRoleById(role.getId());</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">    if (!target.getName().equals(role.getName())</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        &amp;&amp; checkDuplicateName(lUserId, lOrganizationId, role.getName())) {</span>
+<span class="nc" id="L103">      throw new AuthException(&quot;Duplicate name. (&quot; + role.getName() + &quot;)&quot;,</span>
+<span class="nc" id="L104">          GlobalErrorCode.CAN_NOT_BE_SAVED, role.getName());</span>
+    }
+
+<span class="nc" id="L107">    BeanUtils.copyProperties(role, target, &quot;ctime&quot;, &quot;users&quot;, &quot;permissions&quot;, &quot;groups&quot;);</span>
+
+<span class="nc" id="L109">    target.excludeUserAll();</span>
+<span class="nc bnc" id="L110" title="All 4 branches missed.">    if (userIds != null &amp;&amp; !userIds.isEmpty()) {</span>
+<span class="nc" id="L111">      target.addUser(</span>
+<span class="nc" id="L112">          userRepository.findByIdInAndOrganizations_idAndDtimeIsNull(userIds, lOrganizationId));</span>
+    }
+
+<span class="nc" id="L115">    target.excludePermissionAll();</span>
+<span class="nc bnc" id="L116" title="All 4 branches missed.">    if (permissionIds != null &amp;&amp; !permissionIds.isEmpty()) {</span>
+<span class="nc" id="L117">      target.addPermission(permissionRepository.findByIdIn(permissionIds));</span>
+    }
+
+<span class="nc" id="L120">    target.excludeGroupAll();</span>
+<span class="nc bnc" id="L121" title="All 4 branches missed.">    if (groupIds != null &amp;&amp; !groupIds.isEmpty()) {</span>
+<span class="nc" id="L122">      target.addGroup(groupRepository.findByIdInAndDtimeIsNull(groupIds));</span>
+    }
+
+<span class="nc" id="L125">    roleRepository.save(target);</span>
+
+    // �뿭�븷 蹂�寃� topic 諛쒗뻾
+<span class="nc" id="L128">    accountKafkaProducer.send(lUserId, lOrganizationId, TargetType.ROLE, ActionType.UPDATE,</span>
+<span class="nc" id="L129">        target.getId());</span>
+<span class="nc" id="L130">    return target;</span>
+  }
+
+
+
+  @Override
+  public void deleteRole(String lUserId, String lOrganizationId, boolean ignoreUser,
+      List&lt;String&gt; roleIds) {
+
+<span class="nc" id="L139">    Assert.notNull(roleIds, &quot;Role must not be null.&quot;);</span>
+<span class="nc" id="L140">    Assert.notEmpty(roleIds, &quot;Role must not be empty.&quot;);</span>
+
+<span class="nc" id="L142">    long time = Instant.now().getEpochSecond();</span>
+<span class="nc" id="L143">    List&lt;Role&gt; roles = roleRepository.findByIdInAndDtimeIsNull(roleIds);</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">    for (Role role : roles) {</span>
+<span class="nc bnc" id="L145" title="All 6 branches missed.">      if (!ignoreUser &amp;&amp; role.getUsers() != null &amp;&amp; role.getUsers().size() &gt; 0) {</span>
+<span class="nc" id="L146">        throw new AuthException(&quot;Could not delete role. Remove the user.&quot;,</span>
+<span class="nc" id="L147">            GlobalErrorCode.CAN_NOT_BE_DELETED, role.getId());</span>
+      }
+<span class="nc" id="L149">      role.setDtime(time);</span>
+<span class="nc" id="L150">    }</span>
+
+<span class="nc" id="L152">    roleRepository.saveAll(roles);</span>
+
+    // �뿭�븷 �궘�젣 topic 諛쒗뻾
+<span class="nc" id="L155">    accountKafkaProducer.send(lUserId, lOrganizationId, TargetType.ROLE, ActionType.DELETE,</span>
+        roleIds);
+<span class="nc" id="L157">  }</span>
+
+
+  @Override
+  public Role selectRoleById(String lUserId, String lOrganizationId, String id) {
+<span class="nc" id="L162">    return roleRepository.findRoleById(id);</span>
+  }
+
+
+  @Override
+  public List&lt;Role&gt; selectRoleByConditions(String lUserId, String lOrganizationId, Role role) {
+<span class="nc" id="L168">    return roleRepository.findByDtimeIsNullOrderByNameAsc();</span>
+  }
+
+
+  @Override
+  public List&lt;Role&gt; selectRoleByUser(String lUserId, String lOrganizationId, User user) {
+<span class="nc" id="L174">    return roleRepository.findByUsers_idAndDtimeIsNull(user.getId());</span>
+  }
+
+
+
+  @Override
+  public List&lt;Role&gt; selectRoleByUserWithOwn(String lUserId, String lOrganizationId, User user) {
+
+<span class="nc" id="L182">    List&lt;Role&gt; own = roleRepository.findByUsers_idAndDtimeIsNull(user.getId());</span>
+<span class="nc" id="L183">    List&lt;Role&gt; notOwn = roleRepository.findByUsers_idNotAndDtimeIsNull(user.getId());</span>
+<span class="nc" id="L184">    List&lt;Role&gt; roles = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L186">    own = own.stream().map(r -&gt; {</span>
+<span class="nc" id="L187">      r.setOwn(true);</span>
+<span class="nc" id="L188">      return r;</span>
+<span class="nc" id="L189">    }).toList();</span>
+<span class="nc" id="L190">    roles.addAll(own);</span>
+
+<span class="nc" id="L192">    notOwn.stream().map(r -&gt; {</span>
+<span class="nc" id="L193">      r.setOwn(false);</span>
+<span class="nc" id="L194">      return r;</span>
+<span class="nc" id="L195">    }).toList();</span>
+<span class="nc" id="L196">    roles.addAll(notOwn);</span>
+<span class="nc" id="L197">    return roles;</span>
+  }
+
+
+  @Override
+  public List&lt;Role&gt; selectRoleByGroupWithOwn(String lUserId, String lOrganizationId, Group group) {
+
+<span class="nc" id="L204">    List&lt;Role&gt; own = roleRepository.findByGroups_idAndDtimeIsNull(group.getId());</span>
+<span class="nc" id="L205">    List&lt;Role&gt; notOwn = roleRepository.findByGroups_idNotAndDtimeIsNull(group.getId());</span>
+<span class="nc" id="L206">    List&lt;Role&gt; roles = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L208">    own = own.stream().map(r -&gt; {</span>
+<span class="nc" id="L209">      r.setOwn(true);</span>
+<span class="nc" id="L210">      return r;</span>
+<span class="nc" id="L211">    }).toList();</span>
+<span class="nc" id="L212">    roles.addAll(own);</span>
+
+<span class="nc" id="L214">    notOwn.stream().map(r -&gt; {</span>
+<span class="nc" id="L215">      r.setOwn(false);</span>
+<span class="nc" id="L216">      return r;</span>
+<span class="nc" id="L217">    }).toList();</span>
+<span class="nc" id="L218">    roles.addAll(notOwn);</span>
+<span class="nc" id="L219">    return roles;</span>
+  }
+
+
+  @Override
+  public Boolean checkDuplicateName(String lUserId, String lOrganizationId, String name) {
+<span class="nc" id="L225">    Role role = roleRepository.findFirstByNameAndDtimeIsNull(name);</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">    return (role != null);</span>
+  }
+
+
+
+  @Override
+  public List&lt;String&gt; selectRoleByUserIncludeIdFileds(String userId) {
+<span class="nc" id="L233">    return roleRepository.selectByUsers_idIncludeIdFields(userId).stream().map(i -&gt; {</span>
+<span class="nc" id="L234">      return i.getId();</span>
+<span class="nc" id="L235">    }).toList();</span>
+
+  }
+
+
+  @Override
+  public Page&lt;Role&gt; selectRoleByConditions(String lUserId, String lOrganizationId,
+      List&lt;Criteria&gt; criterias, Pageable pageable) {
+<span class="nc" id="L243">    return roleRepository.selectByConditions(lUserId, lOrganizationId, criterias, pageable);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

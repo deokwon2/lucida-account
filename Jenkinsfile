@@ -6,9 +6,9 @@ node {
 //       }
 
 
-//     stage('Checkout') {
-//       git branch: 'main', credentialsId: 'deokwon2', url: 'https://github.com/deokwon2/lucida-account.git'
-//     }
+    stage('Checkout') {
+      git branch: 'main', credentialsId: 'deokwon2', url: 'https://github.com/deokwon2/lucida-account.git'
+    }
 
 //     stage('SonarQube Analysis') {
 //         withSonarQubeEnv() {
