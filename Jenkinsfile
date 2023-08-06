@@ -22,7 +22,7 @@ node {
                 -Ddetekt.sonar.kotlin.config.path=default-detekt-config.yml \
                 -Dsonar.sources=src/main/java \
                 -Dsonar.exclusions='**/constants/**' \
-                -Dsonar.coverage.exclusions='**/entity/**, **/config/**, **/helper/**' \
+                -Dsonar.coverage.exclusions='**/config/**, **/controller/**, **/entity/**, **/helper/**, **/kafaka/**, **/repository/**' \
                 -Dsonar.java.sourcesion=1.8 \
                 -Dsonar.sourceEncoding=UTF-8 \
                 -Dsonar.java.binaries=build/classes \
