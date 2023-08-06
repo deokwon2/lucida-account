@@ -32,15 +32,16 @@ node {
                 )
         }
 
-        sleep 10
         echo "Waiting for quality gate..."
 
         def qg = sh(returnStatus: true, script: 'curl -s http://192.168.219.105:9000/api/qualitygates/project_status?projectKey=lucida-account')
         if (qg != 'OK') {
-          echo "Quality gate failed"
-          error("Quality gate failed")
+            echo qg
+            echo "Quality gate failed"
+            error("Quality gate failed")
         } else {
           echo "Quality gate passed"
+          echo qg
         }
 
      }
