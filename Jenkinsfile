@@ -1,13 +1,9 @@
 def SONAR_PROJECT = env.JOB_NAME
 
 node {
-      stage('SCM') {
-        checkout scm
-      }
-
-//     stage('Checkout') {
-//       git branch: 'main', credentialsId: 'deokwon2', url: 'https://github.com/deokwon2/lucida-account.git'
-//     }
+    stage('SCM') {
+    checkout scm
+    }
 
     stage('SonarQube Analysis') {
 
@@ -32,7 +28,19 @@ node {
                 -Dsonar.java.binaries=build/classes \
                 -Dsonar.coverage.jacoco.xmlReportPaths=${PROJECTDIR}/build/reports/jacoco/test/jacocoTestReport.xml \
                 -Dsonar.projectBaseDir=${PROJECTDIR}
-                """)
+                """
+                )
+        }
+
+        sleep 10
+        echo "Waiting for quality gate..."
+
+        def qg = sh(returnStatus: true, script: 'curl -s http://192.168.219.105:9000/api/qualitygates/project_status?projectKey=lucida-account').trim()
+        if (qg != 'OK') {
+          echo "Quality gate failed"
+          error("Quality gate failed")
+        } else {
+          echo "Quality gate passed"
         }
 
      }
