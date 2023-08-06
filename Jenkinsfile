@@ -42,7 +42,6 @@ node {
 
         if (qg != 'OK') {
             echo "Quality gate failed"
-            echo "Detailed quality results: ${qg.detailedQualityResults}"
         } else {
           echo "Quality gate passed"
         }
