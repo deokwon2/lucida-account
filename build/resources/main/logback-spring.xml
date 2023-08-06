@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 60초마다 설정 파일의 변경을 확인 하여 변경시 갱신 -->
+<configuration scan="true"
+               scanPeriod="60 seconds">
+	<statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+	
+	<!--springProfile 태그를 사용하면 logback 설정파일에서 복수개의 프로파일을 설정할 수 있다.-->
+	<springProfile>
+		<property resource="application.yml"/>
+	</springProfile>
+
+
+	<conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+	<conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
+	<conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter" />
+  
+
+	<!--Environment 내의 프로퍼티들을 개별적으로 설정할 수도 있다.-->
+	<springProperty scope="context"
+	                name="LOG_LEVEL_ROOT"
+	                source="logging.level.root"/>
+
+	<springProperty scope="context"
+	                name="LOG_LEVEL_APP"
+	                source="log.config.level.app"/>
+
+	<springProperty scope="context"
+	                name="LOG_LEVEL_LIB"
+	                source="log.config.level.lib"/>
+	                
+	<springProperty scope="context"
+	                name="LOG_PATH"
+	                source="log.config.path"/>
+
+	<springProperty scope="context"
+	                name="LOG_FILE_NAME"
+	                source="log.config.filename"/>
+
+	<springProperty scope="context"
+					name="appName"
+					source="spring.application.name"/>
+
+	<property name="LOG_DATEFORMAT_PATTERN" 
+			  value="${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}" />
+
+	<property name="LOG_LEVEL_PATTERN"
+	          value="${LOG_LEVEL_PATTERN:-%5p}" />
+
+	<property name="LOG_EXCEPTION_CONVERSION_WORD"
+	          value="${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}" />
+	          
+	<property name="CONSOLE_LOG_PATTERN" 
+			  value="${CONSOLE_LOG_PATTERN:-%clr(%d{${LOG_DATEFORMAT_PATTERN}}){faint} %clr(${LOG_LEVEL_PATTERN}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD}}"/>
+
+	<property name="FILE_LOG_PATTERN"
+			  value="${FILE_LOG_PATTERN:-%d{${LOG_DATEFORMAT_PATTERN}} ${LOG_LEVEL_PATTERN} ${PID:- } --- [%t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD}}"/>
+
+	<appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+			<layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
+				<timestampFormat>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampFormat>
+				<appendLineSeparator>true</appendLineSeparator>
+				<jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
+					<prettyPrint>false</prettyPrint>
+				</jsonFormatter>
+			</layout>
+		</encoder>
+	</appender>
+  
+	
+	<!-- prod, dev profile -->
+	<springProfile name="!local">
+		<root level="${LOG_LEVEL_ROOT}">
+			<appender-ref ref="JSON"/>
+		</root>
+
+		<!-- 특정패키지 로깅레벨 설정 -->
+		<logger name="com.nkia.lucida"
+		        level="${LOG_LEVEL_APP}"
+		        additivity="false">
+			<appender-ref ref="JSON"/>
+		</logger>
+	</springProfile>
+	
+	
+	<!-- local profile -->
+	<springProfile name="local">
+
+		<property name="LOCAL_LOG_PATTERN" 
+				  value="%d{yyyy-MM-dd HH:mm:ss} [%thread] [%-5level] [%F %M\(%L\)] : %m%n" />
+
+		<!-- Console Appender -->
+		<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+			<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+				<pattern>${LOCAL_LOG_PATTERN}</pattern>
+			</encoder>
+		</appender>
+
+		<!-- File Appender -->
+		<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+			
+			<!-- 파일경로 설정 -->
+			<file>${LOG_PATH}/${LOG_FILE_NAME}.log</file>
+			
+			<!-- 출력패턴 설정-->
+			<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+				<pattern>${LOCAL_LOG_PATTERN}</pattern>
+			</encoder>
+			
+			<!-- Rolling 정책 -->
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+				<!-- .gz,.zip 등을 넣으면 자동 일자별 로그파일 압축 -->
+				<fileNamePattern>${LOG_PATH}/${LOG_FILE_NAME}.%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+				<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+					<!-- 파일당 최고 용량 kb, mb, gb -->
+					<maxFileSize>10MB</maxFileSize>
+				</timeBasedFileNamingAndTriggeringPolicy>
+				<!-- 일자별 로그파일 최대 보관주기(~일), 해당 설정일 이상된 파일은 자동으로 제거-->
+				<maxHistory>30</maxHistory>
+				<!--<MinIndex>1</MinIndex> <MaxIndex>10</MaxIndex>-->
+			</rollingPolicy>
+		</appender>
+
+
+		<!-- WARN이상의 레벨 로그 처리 -->
+		<appender name="WARN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+			<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+				<level>WARN</level>
+			</filter>
+			<file>${LOG_PATH}/warn.log</file>
+			<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+				<pattern>${LOCAL_LOG_PATTERN}</pattern>
+			</encoder>
+			<!-- Rolling 정책 -->
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+				<!-- .gz,.zip 등을 넣으면 자동 일자별 로그파일 압축 -->
+				<fileNamePattern>${LOG_PATH}/warn.%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+				<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+					<!-- 파일당 최고 용량 kb, mb, gb -->
+					<maxFileSize>10MB</maxFileSize>
+				</timeBasedFileNamingAndTriggeringPolicy>
+				<!-- 일자별 로그파일 최대 보관주기(~일), 해당 설정일 이상된 파일은 자동으로 제거-->
+				<maxHistory>60</maxHistory>
+			</rollingPolicy>
+		</appender>
+		
+
+		<!-- 에러의 경우 파일에 로그 처리 -->
+		<appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+			<filter class="ch.qos.logback.classic.filter.LevelFilter">
+				<level>ERROR</level>
+				<onMatch>ACCEPT</onMatch>
+				<onMismatch>DENY</onMismatch>
+			</filter>
+			<file>${LOG_PATH}/errors.log</file>
+			<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+				<pattern>${LOCAL_LOG_PATTERN}</pattern>
+			</encoder>
+			<!-- Rolling 정책 -->
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+				<!-- .gz,.zip 등을 넣으면 자동 일자별 로그파일 압축 -->
+				<fileNamePattern>${LOG_PATH}/errors.%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+				<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+					<!-- 파일당 최고 용량 kb, mb, gb -->
+					<maxFileSize>10MB</maxFileSize>
+				</timeBasedFileNamingAndTriggeringPolicy>
+				<!-- 일자별 로그파일 최대 보관주기(~일), 해당 설정일 이상된 파일은 자동으로 제거-->
+				<maxHistory>60</maxHistory>
+			</rollingPolicy>
+		</appender>
+
+
+		<!-- File(JSON) Appender  -->
+		<appender name="FILE_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+			
+			<!-- 파일경로 설정 -->
+			<file>${LOG_PATH}/${LOG_FILE_NAME}_for_json.log</file>
+			
+			<!-- 출력패턴 설정-->
+			<encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+				<layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
+					<timestampFormat>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampFormat>
+					<appendLineSeparator>true</appendLineSeparator>
+					<jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
+						<prettyPrint>true</prettyPrint>
+					</jsonFormatter>
+				</layout>
+			</encoder>
+			
+			<!-- Rolling 정책 -->
+			<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+				<!-- .gz,.zip 등을 넣으면 자동 일자별 로그파일 압축 -->
+				<fileNamePattern>${LOG_PATH}/${LOG_FILE_NAME}_for_json.%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+				<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+					<!-- 파일당 최고 용량 kb, mb, gb -->
+					<maxFileSize>10MB</maxFileSize>
+				</timeBasedFileNamingAndTriggeringPolicy>
+				<!-- 일자별 로그파일 최대 보관주기(~일), 해당 설정일 이상된 파일은 자동으로 제거-->
+				<maxHistory>30</maxHistory>
+				<!--<MinIndex>1</MinIndex> <MaxIndex>10</MaxIndex>-->
+			</rollingPolicy>
+		</appender>
+
+
+		<root level="${LOG_LEVEL_ROOT}">
+			<appender-ref ref="CONSOLE"/>
+			<appender-ref ref="WARN"/>
+			<appender-ref ref="ERROR"/>
+			<appender-ref ref="FILE_JSON"/>
+		</root>
+	
+		<!-- 특정패키지 로깅레벨 설정 -->
+		<logger name="com.nkia.lucida"
+		        level="${LOG_LEVEL_APP}"
+		        additivity="false">
+			<appender-ref ref="CONSOLE"/>
+			<appender-ref ref="FILE"/>
+			<appender-ref ref="WARN"/>
+			<appender-ref ref="ERROR"/>
+			<appender-ref ref="FILE_JSON"/>
+		</logger>
+		
+		<logger name="org.apache.shiro" level="ERROR" additivity="false"/>
+		<logger name="org.apache.catalina" level="ERROR" additivity="false"/>
+		<logger name="org.apache.commons" level="ERROR" additivity="false"/>
+	    <logger name="org.springframework.web.servlet" level="ERROR" additivity="false"/>
+	</springProfile>
+</configuration>

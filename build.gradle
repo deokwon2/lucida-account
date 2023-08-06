@@ -7,17 +7,6 @@ plugins {
     id "org.sonarqube" version "4.2.1.3168"
 }
 
-sonar {
-    properties {
-        property "sonar.host.url", "http://192.168.219.105:9000"
-        property "sonar.token", "sqa_62bb4850c553228098cdbfd1809f913a59115e14"
-        property "sonar.projectName", "lucida-account"
-        property "sonar.projectKey", "lucida-account"
-        property "sonar.sources", "src/main/java,src/main/resources"
-        property "sonar.java.binaries", "build/classes"
-    }
-}
-
 ext {
     addArchive = "N"
     java_version = "17"
@@ -221,6 +210,16 @@ springBoot {
 		, productName: "Lucida Project"
 		, artifactId: project.ext.artifactId
 	] } }
+}
+sonar {
+    properties {
+        property "sonar.host.url", "http://192.168.219.105:9000"
+        property "sonar.token", "sqa_62bb4850c553228098cdbfd1809f913a59115e14"
+        property "sonar.projectName", "lucida-account"
+        property "sonar.projectKey", "lucida-account"
+        property "sonar.sources", "src/main/java,src/main/resources"
+        property "sonar.java.binaries", "build/classes"
+    }
 }
 
 jacoco {

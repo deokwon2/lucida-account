@@ -1,0 +1,135 @@
+[
+	{
+		"id": "ACCOUNT_ADMIN_CHANGE_ANOTHER_USER_PASSWORD",
+	    "group": {
+	        "en": "Admin",
+	        "ko": "관리자"
+	    },
+	    "name": {
+	        "en": "Change Another User's Password.",
+	        "ko": "다른 사용자의 암호를 변경할 수 있습니다."
+	    }
+	},
+	{
+		"id": "ACCOUNT_USER_READ",
+	    "group": {
+	        "en": "User",
+	        "ko": "사용자"
+	    },
+	    "name": {
+	        "en": "Retrieve User Information.",
+	        "ko": "사용자 정보를 조회할 수 있습니다."
+	    }
+	},
+	{
+		"id": "ACCOUNT_USER_EDIT",
+	    "group": {
+	        "en": "User",
+	        "ko": "사용자"
+	    },
+	    "name": {
+	        "en": "Add or Change User Information.",
+	        "ko": "사용자 정보를 추가하거나 변경할 수 있습니다."
+	    }
+	},
+	{
+		"id": "ACCOUNT_ROLE_READ",
+	    "group": {
+	        "en": "Role",
+	        "ko": "역할"
+	    },
+	    "name": {
+	        "en": "Retrieve Role Information.",
+	        "ko": "역할 정보를 조회할 수 있습니다."
+	    }
+	},
+	{
+		"id": "ACCOUNT_ROLE_EDIT",
+	    "group": {
+	        "en": "Role",
+	        "ko": "역할"
+	    },
+	    "name": {
+	        "en": "Add or Change Role Information.",
+	        "ko": "역할 정보를 추가하거나 변경할 수 있습니다."
+	    }
+	},
+	{
+		"id": "ACCOUNT_ORGANIZATION_READ",
+	    "group": {
+	        "en": "Organization",
+	        "ko": "조직"
+	    },
+	    "name": {
+	        "en": "Retrieve Organization Information.",
+	        "ko": "조직 정보를 조회할 수 있습니다."
+	    }
+	},
+	{
+		"id": "ACCOUNT_ORGANIZATION_EDIT",
+	    "group": {
+	        "en": "Organization",
+	        "ko": "조직"
+	    },
+	    "name": {
+	        "en": "Add or Change Organization Information.",
+	        "ko": "조직 정보를 추가하거나 변경할 수 있습니다."
+	    }
+	},
+	{
+		"id": "ACCOUNT_GROUP_READ",
+	    "group": {
+	        "en": "Group",
+	        "ko": "그룹"
+	    },
+	    "name": {
+	        "en": "Retrieve Group Information.",
+	        "ko": "그룹 정보를 조회할 수 있습니다."
+	    }
+	},
+	{
+		"id": "ACCOUNT_GROUP_EDIT",
+	    "group": {
+	        "en": "Group",
+	        "ko": "그룹"
+	    },
+	    "name": {
+	        "en": "Add or Change Group Information.",
+	        "ko": "그룹 정보를 추가하거나 변경할 수 있습니다."
+	    }
+	},
+	{
+		"id": "WATCH_LIST_EDIT",
+	    "group": {
+	        "en": "WatchList",
+	        "ko": "관심 목록"
+	    },
+	    "name": {
+	        "en": "Change or Delete Watch list.",
+	        "ko": "관심 목록을 변경하거나 삭제할 수 있습니다."
+	    }
+	},
+	{
+		"id": "DASHBOARD_BUILDER_READ",
+		"group": {
+			"en": "DashboardBuilder",
+			"ko": "대시보드 빌더"
+		},
+		"name": {
+			"en": "Retrieve Dashboard Builder Information.",
+			"ko": "대시보드 빌더를 조회할 수 있습니다."
+		}
+	},
+	{
+		"id": "DASHBOARD_BUILDER_EDIT",
+		"group": {
+			"en": "DashboardBuilder",
+			"ko": "대시보드 빌더"
+		},
+		"name": {
+			"en": "Add or Change Dashboard Builder Information.",
+			"ko": "대시보드 빌더를 추가하거나 변경할 수 있습니다."
+		}
+	}
+	
+]
