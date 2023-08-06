@@ -11,9 +11,12 @@ node {
 //     }
 
     stage('SonarQube Analysis') {
-       withSonarQubeEnv() {
-           sh "./gradlew sonar"
-       }
+        withSonarQubeEnv() {
+           sh '''
+              chmod +x ./gradlew
+              ./gradlew sonar
+           '''
+        }
     }
 
 
