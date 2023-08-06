@@ -1,0 +1,40 @@
+{
+  "type": "record",
+  "name": "AccountEventAvro",
+  "namespace": "com.nkia.lucida.avro",
+  "fields": [
+    {
+      "name": "targetType",
+      "type": {
+        "name": "TargetType",
+        "type": "enum",
+        "symbols" : [
+          "ORGANIZATION", "USER", "GROUP", "ROLE"
+        ]
+      }
+    },
+    {
+      "name": "actionType",
+      "type": {
+        "name": "ActionType",
+        "type": "enum",
+        "symbols" : [
+          "INSERT", "UPDATE", "DELETE", "LOGIN", "LOGOUT"
+        ]
+      }
+    },
+    {
+      "name": "ids",
+      "type": [
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "avro.java.string": "String"
+          }
+        },
+        "null"
+      ]
+    }
+  ]
+}

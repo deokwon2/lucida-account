@@ -1,0 +1,360 @@
+plugins {
+    id 'org.springframework.boot' version '3.0.7'
+   	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'java'
+    id 'jacoco'
+	id "com.github.davidmc24.gradle.plugin.avro" version "1.3.0"
+}
+
+
+ext {
+    addArchive = "N"
+    java_version = "17"
+    project.version = "0.0.1"
+    project.group = "com.nkia.lucida.account"
+    artifactId = "lucida-account"
+
+    currentTime = new Date().getTime()
+    currentDate = new Date(currentTime).format("yyyy-MM-dd HH:mm:ss")
+    currentDate_yyyyMMddHHmmss = new Date(currentTime).format("yyyyMMddHHmmss")
+
+    local_nexus_url = "http://221.141.145.12:9081/repository/maven-snapshots/"
+}
+
+sourceCompatibility = "${project.ext.java_version}"
+
+sourceSets {
+    main {
+        java {
+            srcDir "src/main/java"
+        }
+		resources {
+			srcDir "src/main/resources"
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = "${project.ext.local_nexus_url}"
+        allowInsecureProtocol = true
+    }
+    maven {
+        url "https://packages.confluent.io/maven"
+    }
+    maven {
+        url "https://repo.spring.io/snapshot"
+    }
+    maven {
+        url "https://repo.spring.io/milestone"
+    }
+    maven {
+        url "https://repo.spring.io/release"
+    }
+}
+
+dependencies {
+	configurations.all {
+	    exclude group: "commons-logging", module: "commons-logging"
+	    exclude group: "org.slf4j", module: "slf4j-log4j12"
+	    exclude group: "log4j", module: "log4j"
+	    exclude group: "org.apache.logging.log4j"
+	    
+    	// 동일 모듈에 대한 버전 충돌시 즉시 오류 발생하고 실패.
+    	//resolutionStrategy.failOnVersionConflict()
+    
+	    //버전이 미지정된 라이브러리를 10분 캐시
+	    //resolutionStrategy.cacheDynamicVersionsFor 10, "minutes"
+	    
+		// 변하는 모듈(Changing Module)을 캐시하지 않음
+	    resolutionStrategy.cacheChangingModulesFor 0, "seconds"
+	}
+
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation "org.springframework.boot:spring-boot-starter-logging"
+	implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	implementation "org.projectlombok:lombok"
+	testImplementation "org.projectlombok:lombok"
+	annotationProcessor "org.projectlombok:lombok"
+	testAnnotationProcessor "org.projectlombok:lombok"
+
+    implementation 'org.apache.avro:avro:1.11.0'
+    implementation 'io.confluent:kafka-avro-serializer:7.0.1'
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    implementation "com.nkia.lucida.common.mongodb:lucida-common-mongodb:0.1.9-SNAPSHOT"
+    implementation "com.nkia.lucida.common.telemetry:lucida-common-telemetry:0.1.9-SNAPSHOT"
+	implementation "com.nkia.lucida.common.auth:lucida-common-auth:0.1.3-SNAPSHOT"
+    implementation 'org.apache.shiro:shiro-crypto-cipher:1.11.0'
+    implementation 'org.apache.shiro:shiro-crypto-hash:1.11.0'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.73'
+    implementation 'com.nimbusds:nimbus-jose-jwt:9.25.1'
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+
+    //opencsv library
+    implementation 'com.opencsv:opencsv:5.7.1'
+}
+
+processResources {
+	duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
+}
+
+
+classes {
+    doFirst{
+        sourceSets.each { srcSet ->
+            srcSet.output.classesDirs.files.each { file ->
+                srcSet.allJava.srcDirs.each { srcDir ->
+					copy {
+					    from( srcDir.path ) {
+					        exclude "**/*.java"
+							include "**/*"
+					    }
+					    into file.path
+				    }
+                }                
+            }
+        }
+    }
+}
+
+
+bootJar {
+	archiveName = "${project.ext.artifactId}.jar"
+    manifest {
+        attributes("Implementation-Title":   project.ext.artifactId,
+                   "Implementation-Version": project.version,
+                   "Build-Time": currentDate)
+    }
+
+	if(addArchive == "Y") {
+	    doLast {
+	    	println "bootJar > doLast"
+	    	println "\t"+processResources.destinationDir
+	    	println "\t"+bootJar.destinationDir
+	    	
+			var archiveDir ="${project.ext.artifactId}"+"_"+"${currentDate_yyyyMMddHHmmss}"
+			var archivePath = bootJar.destinationDir.toString()+"/"+archiveDir
+			
+	    	mkdir archivePath
+	    	copy {
+	    		from( processResources.destinationDir ) {
+	    			include "**/*"
+	    		}
+	    		into archivePath+"/"+"${project.ext.artifactId}"
+	    		
+				from( bootJar.destinationDir ) {
+	    			include archiveName
+	    		}
+	    		into archivePath+"/"+"${project.ext.artifactId}"
+	    	}
+		}
+	}
+}
+
+jar {
+    enabled = false
+}
+
+tasks.register("createZip", Zip) {
+	var archiveDir ="${project.ext.artifactId}"+"_"+"${currentDate_yyyyMMddHHmmss}"
+	var archivePath = bootJar.destinationDir.toString()+"/"+archiveDir
+	archiveFileName = archiveDir+".zip"
+	destinationDirectory = bootJar.destinationDir
+	from archivePath
+}
+
+tasks.register("createTar", Tar) {
+	var archiveDir ="${project.ext.artifactId}"+"_"+"${currentDate_yyyyMMddHHmmss}"
+	var archivePath = bootJar.destinationDir.toString()+"/"+archiveDir+"/"
+	archiveFileName = archiveDir+".tar.gz"
+	compression = Compression.GZIP
+	destinationDirectory = bootJar.destinationDir
+	from archivePath
+}
+
+
+assemble {
+	if(addArchive == "Y") {
+		dependsOn "createZip"
+		dependsOn "createTar"
+	}
+}
+
+bootRun {
+    jvmArgs = [
+		 "-agentlib:jdwp=transport=dt_socket,server=y,address=8001,suspend=n"
+		,"-Xms4096m"
+		,"-Xmx4096m"
+		,"-Dspring.profiles.active=local"
+    ]
+
+    environment "MONGODB_URI", "mongodb://192.168.200.99:27017"
+    environment "MONGODB_DATABASE", "shared"
+    environment "KAFKA_CLUSTER_BOOTSTRAP", "192.168.200.99:9091"
+    environment "SCHEMA_REGISTRY_URL", "http://192.168.200.99:8081"
+}
+
+springBoot {
+    buildInfo { properties { additional = [
+		time: project.ext.currentTime
+		, date: project.ext.currentDate
+		, createBy: "Nkia R&D Center"
+		, productName: "Lucida Project"
+		, artifactId: project.ext.artifactId
+	] } }
+}
+
+jacoco {
+    toolVersion = "0.8.7"
+}
+
+test {
+	//exclude '**/*'
+
+    jvmArgs = [
+            "-Dspring.profiles.active=test"
+    ]
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = false
+    }
+
+    def Qdomains = []
+    for (qPattern in '**/QA'..'**/QZ') {
+        Qdomains.add(qPattern + '*')
+    }
+    afterEvaluate {
+        classDirectories.setFrom(
+                files(classDirectories.files.collect {
+                    fileTree(dir: it, excludes: [
+                            "**/domain/*",
+                            "**/config/*",
+                            "**/controller/Exception*",
+                            "**/controller/Datasource*",
+                            "**/*Application",
+                            "**/security/*",
+                            "**/service/Datasource*"
+                    ] + Qdomains)
+                })
+        )
+    }
+}
+
+jacocoTestCoverageVerification {
+    def Qdomains = []
+    for (qPattern in '**.QA'..'**.QZ') {
+        Qdomains.add(qPattern + '*')
+    }
+    violationRules {
+        rule {
+            //추후 사용을 대비하여 설정 파일만 먼저 적어 둔다.
+            enabled = true
+
+            // 룰을 체크할 단위는 클래스 단위
+            element = 'CLASS'
+			/*
+            // 브랜치 커버리지를 최소한 90% 만족시켜야 합니다.
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.90
+            }
+
+            // 라인 커버리지를 최소한 80% 만족시켜야 합니다.
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.809
+            }
+
+            // 빈 줄을 제외한 코드의 라인수를 최대 200라인으로 제한합니다.
+            limit {
+                counter = 'LINE'
+                value = 'TOTALCOUNT'
+                maximum = 200
+            }
+			*/
+            // 커버리지 체크를 제외할 클래스들이 있을 경우 설정
+            excludes = [
+                    "**.domain.*",
+                    "**.config.*",
+                    "**.controller.Exception*",
+                    "**.controller.Datasource*",
+                    "**.*Application",
+                    "**.security.*",
+                    "**.service.Datasource*"
+            ] + Qdomains
+        }
+    }
+}
+
+// Avro plugin 설정
+avro {
+	createSetters = false
+	fieldVisibility = "PRIVATE"
+}
+
+
+
+tasks.register("serviceJar", Jar) {
+	description = "Build to serviceJar"
+	group = 'build'
+	
+	exclude("com/nkia/lucida/account/Application.class")
+	exclude("com/nkia/lucida/account/config/OpenAPIConfig.class")
+	exclude("com/nkia/lucida/account/config/ThreadPoolConfig.class")
+	exclude("com/nkia/lucida/account/config/TMongoDBConfigurer.class")
+	exclude("com/nkia/lucida/account/config/TWebConfig.class")
+	exclude("com/nkia/lucida/account/config/TWebInterceptor.class")
+
+    exclude("public")
+	exclude("*.properties")
+	exclude("*.yml")
+    exclude("*.yaml")
+	exclude("*.txt")
+	exclude("*.xml")
+
+	archiveName = "${project.ext.artifactId}-service-${project.version}.jar"
+    manifest {
+        attributes("Implementation-Title": project.ext.artifactId,
+                   "Implementation-Version": project.version,
+                   "Implementation-Build-Date": project.ext.currentDate,
+                   "Implementation-Build-Time": project.ext.currentTime,
+                   "Created-By":"Nkia R&D Center")
+    }
+   
+   	/*
+   	// Fat jar
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    */
+    with jar
+    
+    
+    doLast {
+    	println "\n\n"
+    	println "Build directory"
+    	println "${buildDir}"
+    	println "\n\n"
+	    println "Created JAR file path."
+		println "${destinationDir}"
+		println archiveName
+		println "\n\n"
+	}
+}

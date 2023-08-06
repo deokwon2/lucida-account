@@ -1,0 +1,182 @@
+spring:
+  profiles:
+    group:
+      'local': 'common,local-env'
+      'dev': 'common,dev-env'
+      'prod': 'common,prod-env'
+---
+
+spring:
+  config:
+    activate:
+      on-profile: 'common'
+  application:
+    name: lucida-account
+  main:
+    banner-mode: CONSOLE
+  kafka:
+    bootstrap-servers: ${KAFKA_CLUSTER_BOOTSTRAP}
+    consumer:
+      group-id: account
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      auto-offset-reset: earliest
+      fetch-max-wait: 1s
+      fetch-min-size: 1000
+      max-poll-records: 1000
+      properties:
+        schema.registry.url: ${SCHEMA_REGISTRY_URL}
+        max.poll.interval.ms: 300000
+        fetch.max.bytes: 104857600
+        specific.avro.reader: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      acks: 1
+      compression-type: gzip
+      properties:
+        schema.registry.url: ${SCHEMA_REGISTRY_URL}
+        max.request.size: 104857600
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+    baggage:
+      remote-fields:
+        - organizationId
+        - userId
+      correlation:
+        fields:
+          - organizationId
+          - userId
+        enabled: true
+    propagation:
+      type: w3c
+
+server:
+  servlet:
+    context-path: /
+  tomcat:
+    additional-tld-skip-patterns: '*.jar'
+    basedir: .
+  shutdown: graceful
+
+springdoc:
+  version: v1
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  swagger-ui:
+    path: /swagger/account/swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+    doc-expansion: none
+    config-url: /swagger/account/v3/api-docs/swagger-config
+    url: /swagger/account/v3/api-docs
+  api-docs:
+    path: /swagger/account/v3/api-docs
+  paths-to-match:
+    - /api/**
+
+com:
+  nkia:
+    lucida:
+      common:
+        mongodb:
+          uri: ${MONGODB_URI}
+          global-database: ${MONGODB_DATABASE}
+          poolMaxSize: 50
+          isolation:
+            poolMaxSize: 30
+          shared:
+            poolMaxSize: 10
+
+
+global-thread-pool-task-scheduler:
+  pool-size: 3
+
+global-thread-pool-task-executor:  
+  core-pool-size: 10
+  max-pool-size: 20
+  queue-capacity: 3
+
+kafka:
+  useSendCallback: false
+  topic-num-partitions: 3
+  topic-replication-factor: 3
+
+---
+
+
+server:
+  port: 80
+
+spring:
+  config:
+    activate:
+      on-profile: 'prod-env'
+
+log:
+  config:
+    filename: application
+    path: logs
+    level:
+      app: INFO
+      lib: WARN
+
+logging:
+  level:
+    root: WARN
+  pattern:
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] [%X{organizationId:-},%X{userId:-}]'
+---
+
+
+server:
+  port: 80
+
+spring:
+  config:
+    activate:
+      on-profile: 'dev-env'
+  
+log:
+  config:
+    filename: application
+    path: logs
+    level:
+      app: INFO
+      lib: WARN
+
+logging:
+  level:
+    root: INFO
+  pattern:
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] [%X{organizationId:-},%X{userId:-}]'
+---
+
+
+server:
+  port: 80
+
+spring:
+  config:
+    activate:
+      on-profile: 'local-env'
+
+log:
+  config:
+    filename: application
+    path: logs
+    level:
+      app: DEBUG
+      lib: WARN
+
+logging:
+  level:
+    root: WARN
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+  pattern:
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] [%X{organizationId:-},%X{userId:-}]'
