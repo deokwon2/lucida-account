@@ -32,7 +32,7 @@ node {
                 )
         }
 
-        echo "Waiting for quality gate..."
+        echo "Waiting for quality gate"
 
         def qg = sh(returnStatus: true, script:
             """
