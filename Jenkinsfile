@@ -35,8 +35,9 @@ node {
                     -Dsonar.projectName=lucida-account \
                     -Dsonar.report.export.path=${scannerHome}/.scannerwork/sonar-report.json \
                     -Ddetekt.sonar.kotlin.config.path=default-detekt-config.yml \
-                    -Dsonar.sources=src/main/java,src/main/resources \
-                    -Dsonar.inclusions='**/service/**' \
+                    -Dsonar.sources=src/main/java \
+                    -Dsonar.exclusions='**/dto/**' \
+                    -Dsonar.coverage.exclusions='**/entity/**, **/config/**, **/helper/**' \
                     -Dsonar.java.sourcesion=1.8 \
                     -Dsonar.sourceEncoding=UTF-8 \
                     -Dsonar.java.binaries=build/classes \
