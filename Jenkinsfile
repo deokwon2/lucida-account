@@ -14,7 +14,7 @@ node {
             sonarAnalysis = sh(returnStatus: true, script:
                 """
                 ${scannerHome}/bin/sonar-scanner \
-                -Dsonar.host.url=http://192.168.219.105:9000 \
+                -Dsonar.host.url=http://192.168.10.12:9000 \
                 -Dsonar.token=sqa_62bb4850c553228098cdbfd1809f913a59115e14 \
                 -Dsonar.projectKey=lucida-account \
                 -Dsonar.projectName=lucida-account \
@@ -42,7 +42,7 @@ node {
 
             def qg = sh(returnStatus: true, script:
             """
-            curl -s http://192.168.219.105:9000/api/qualitygates/project_status?projectKey=lucida-account&metricKeys=all_code_coverage,all_code_sqale_index,all_code_bugs')
+            curl -s http://192.168.10.12:9000/api/qualitygates/project_status?projectKey=lucida-account&metricKeys=all_code_coverage,all_code_sqale_index,all_code_bugs')
             """
             )
 
