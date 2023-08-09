@@ -34,21 +34,14 @@ node {
 
         echo "Waiting for quality gate"
 
-//         def qg = sh(returnStatus: true, script:
-//             """
-//             curl -s http://192.168.219.105:9000/api/qualitygates/project_status?projectKey=lucida-account')
-//             """
-//             )
-
-            def qg = sh(returnStatus: true, script:
+        def qg = sh(returnStatus: true, script:
             """
-            curl -s http://192.168.10.12:9000/api/qualitygates/project_status?projectKey=lucida-account&metricKeys=all_code_coverage,all_code_sqale_index,all_code_bugs')
+            curl -s http://192.168.219.105:9000/api/qualitygates/project_status?projectKey=lucida-account')
             """
             )
 
         if (qg != 'OK') {
             echo "Quality gate failed"
-            echo qg
         } else {
           echo "Quality gate passed"
         }
