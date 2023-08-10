@@ -3,9 +3,7 @@ node {
         SONARQUBE_HOME = tool name: 'SonarQubeScanner'
     }
     stage('Checkout') {
-        steps {
-            checkout scm
-        }
+        checkout scm
     }
     
     stage('SonarQube Analysis') {
