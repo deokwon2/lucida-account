@@ -1,4 +1,4 @@
-pipeline {
+node {
     environment {
         SONARQUBE_HOME = tool name: 'SonarQubeScanner'
     }
