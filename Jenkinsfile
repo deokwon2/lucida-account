@@ -33,9 +33,9 @@ node {
     
     stage('Quality Gate') {
         script {
-            def qualityGate = waitForQualityGate('SonarQubeServer')
-
-            echo "Quality Gate status: ${qualityGate.status}"
+            def qualityGate = waitForQualityGate()
+            echo "Quality Gate status: "
+            echo "${qualityGate.status}"
 
             if (qualityGate.status != 'PASSED') {
                 error("Quality Gate Failed.")
