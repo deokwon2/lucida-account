@@ -33,15 +33,14 @@ pipeline {
     }
     
     stage('Quality Gate') {
-        steps {
-            script {
-                def qualityGate = waitForQualityGate('SonarQubeServer')
-                
-                echo "Quality Gate status: ${qualityGate.status}"                
-                
-                if (qualityGate.status != 'PASSED') {
-                    error("Quality Gate Failed.")
-                }
+        script {
+            def qualityGate = waitForQualityGate('SonarQubeServer')
+
+            echo "Quality Gate status: ${qualityGate.status}"
+
+            if (qualityGate.status != 'PASSED') {
+                error("Quality Gate Failed.")
             }
         }
+    }
 }
