@@ -14,7 +14,7 @@ pipeline {
                 "-Dsonar.host.url=http://192.168.10.12:9000",
                 "-Dsonar.token=sqa_62bb4850c553228098cdbfd1809f913a59115e14",
                 "-Dsonar.projectKey=lucida-account",
-                "-Dsonar.projectName=lucida-account"
+                "-Dsonar.projectName=lucida-account",
                 "-Dsonar.report.export.path=${scannerHome}/.scannerwork/sonar-report.json",
                 "-Dsonar.sources=src/main/java",
                 "-Dsonar.exclusions='**/constants/**'",
