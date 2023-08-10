@@ -11,12 +11,12 @@ node {
         withSonarQubeEnv() {
             sonarAnalysis = sh(returnStatus: true, script:
                 """
-                ${scannerHome}/bin/sonar-scanner \
+                ${SONARQUBE_HOME}/bin/sonar-scanner \
                 -Dsonar.host.url=http://192.168.10.12:9000 \
                 -Dsonar.token=sqa_62bb4850c553228098cdbfd1809f913a59115e14 \
                 -Dsonar.projectKey=lucida-account \
                 -Dsonar.projectName=lucida-account \
-                -Dsonar.report.export.path=${scannerHome}/.scannerwork/sonar-report.json \
+                -Dsonar.report.export.path=${SONARQUBE_HOME}/.scannerwork/sonar-report.json \
                 -Ddetekt.sonar.kotlin.config.path=default-detekt-config.yml \
                 -Dsonar.sources=src/main/java \
                 -Dsonar.exclusions='**/constants/**' \
