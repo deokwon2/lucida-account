@@ -1,12 +1,11 @@
 node {
-    environment {
-        SONARQUBE_HOME = tool name: 'SonarQubeScanner'
-    }
+
     stage('Checkout') {
         checkout scm
     }
     
     stage('SonarQube Analysis') {
+        def SONARQUBE_HOME = tool 'SonarQube Scanner'
         script {
             def scannerOpts = [
                 "-Dsonar.host.url=http://192.168.10.12:9000",
